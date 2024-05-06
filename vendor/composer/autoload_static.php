@@ -47,6 +47,7 @@ class ComposerStaticInitda9b7a1dc1dd923105198c572cc7df8d
         'ce9671a430e4846b44e1c68c7611f9f5' => __DIR__ . '/..' . '/mockery/mockery/library/Mockery.php',
         'd634523d799d97a8ab4807b650bf5cea' => __DIR__ . '/..' . '/pestphp/pest-plugin-laravel/src/Autoload.php',
         '320163ac6b93aebe3dc25b60a0533d56' => __DIR__ . '/..' . '/spatie/laravel-ignition/src/helpers.php',
+        '377d15ea71be0306a9829d9f78207a1c' => __DIR__ . '/..' . '/torann/currency/src/helpers.php',
     );
 
     public static $prefixLengthsPsr4 = array (
@@ -65,6 +66,7 @@ class ComposerStaticInitda9b7a1dc1dd923105198c572cc7df8d
         ),
         'T' => 
         array (
+            'Torann\\Currency\\' => 16,
             'TijsVerkoyen\\CssToInlineStyles\\' => 31,
             'Tests\\' => 6,
             'Termwind\\' => 9,
@@ -241,6 +243,10 @@ class ComposerStaticInitda9b7a1dc1dd923105198c572cc7df8d
         'Webmozart\\Assert\\' => 
         array (
             0 => __DIR__ . '/..' . '/webmozart/assert/src',
+        ),
+        'Torann\\Currency\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/torann/currency/src',
         ),
         'TijsVerkoyen\\CssToInlineStyles\\' => 
         array (
@@ -7702,6 +7708,19 @@ class ComposerStaticInitda9b7a1dc1dd923105198c572cc7df8d
         'TijsVerkoyen\\CssToInlineStyles\\Css\\Property\\Property' => __DIR__ . '/..' . '/tijsverkoyen/css-to-inline-styles/src/Css/Property/Property.php',
         'TijsVerkoyen\\CssToInlineStyles\\Css\\Rule\\Processor' => __DIR__ . '/..' . '/tijsverkoyen/css-to-inline-styles/src/Css/Rule/Processor.php',
         'TijsVerkoyen\\CssToInlineStyles\\Css\\Rule\\Rule' => __DIR__ . '/..' . '/tijsverkoyen/css-to-inline-styles/src/Css/Rule/Rule.php',
+        'Torann\\Currency\\Console\\Cleanup' => __DIR__ . '/..' . '/torann/currency/src/Console/Cleanup.php',
+        'Torann\\Currency\\Console\\Manage' => __DIR__ . '/..' . '/torann/currency/src/Console/Manage.php',
+        'Torann\\Currency\\Console\\Update' => __DIR__ . '/..' . '/torann/currency/src/Console/Update.php',
+        'Torann\\Currency\\Contracts\\DriverInterface' => __DIR__ . '/..' . '/torann/currency/src/Contracts/DriverInterface.php',
+        'Torann\\Currency\\Contracts\\FormatterInterface' => __DIR__ . '/..' . '/torann/currency/src/Contracts/FormatterInterface.php',
+        'Torann\\Currency\\Currency' => __DIR__ . '/..' . '/torann/currency/src/Currency.php',
+        'Torann\\Currency\\CurrencyServiceProvider' => __DIR__ . '/..' . '/torann/currency/src/CurrencyServiceProvider.php',
+        'Torann\\Currency\\Drivers\\AbstractDriver' => __DIR__ . '/..' . '/torann/currency/src/Drivers/AbstractDriver.php',
+        'Torann\\Currency\\Drivers\\Database' => __DIR__ . '/..' . '/torann/currency/src/Drivers/Database.php',
+        'Torann\\Currency\\Drivers\\Filesystem' => __DIR__ . '/..' . '/torann/currency/src/Drivers/Filesystem.php',
+        'Torann\\Currency\\Facades\\Currency' => __DIR__ . '/..' . '/torann/currency/src/Facades/Currency.php',
+        'Torann\\Currency\\Formatters\\PHPIntl' => __DIR__ . '/..' . '/torann/currency/src/Formatters/PHPIntl.php',
+        'Torann\\Currency\\Middleware\\CurrencyMiddleware' => __DIR__ . '/..' . '/torann/currency/src/Middleware/CurrencyMiddleware.php',
         'UnhandledMatchError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/UnhandledMatchError.php',
         'ValueError' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/ValueError.php',
         'Webmozart\\Assert\\Assert' => __DIR__ . '/..' . '/webmozart/assert/src/Assert.php',
