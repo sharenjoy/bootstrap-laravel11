@@ -13,7 +13,8 @@
         "livewire/volt": "^1.0",
         "mcamara/laravel-localization": "^2.0",
         "torann/currency": "^1.1",
-        "torann/geoip": "^3.0"
+        "torann/geoip": "^3.0",
+        "webpatser/laravel-countries": "dev-master"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.13",
