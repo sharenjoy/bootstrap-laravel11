@@ -1,7 +1,9 @@
 <?php
 
 use App\Livewire\Actions\Logout;
+use Illuminate\Support\Facades\Session;
 use Livewire\Volt\Component;
+use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
 new class extends Component
 {
@@ -10,9 +12,14 @@ new class extends Component
      */
     public function logout(Logout $logout): void
     {
+        $redirectUrl = LaravelLocalization::localizeURL('/');
+        $locale =  Session::get('locale');
+
         $logout();
 
-        $this->redirect('/', navigate: true);
+        Session::put('locale', $locale);
+
+        $this->redirect($redirectUrl, navigate: true);
     }
 }; ?>
 

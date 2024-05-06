@@ -1,15 +1,31 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Livewire\Livewire;
+use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
-Route::view('/', 'welcome');
+Route::group([
+    'prefix' => LaravelLocalization::setLocale(),
+    'middleware' => ['localeSessionRedirect', 'localizationRedirect', 'localeViewPath']
+], function () {
 
-Route::view('dashboard', 'dashboard')
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
+    Livewire::setUpdateRoute(function ($handle) {
+        return Route::post('/livewire/update', $handle);
+    });
 
-Route::view('profile', 'profile')
-    ->middleware(['auth'])
-    ->name('profile');
+    /** ADD ALL LOCALIZED ROUTES INSIDE THIS GROUP **/
 
-require __DIR__.'/auth.php';
+    Route::view('/', 'welcome');
+
+    /** ALL DASHBOARD ROUTES **/
+
+    Route::view('dashboard', 'dashboard')
+        ->middleware(['auth', 'verified'])
+        ->name('dashboard');
+
+    Route::view('profile', 'profile')
+        ->middleware(['auth'])
+        ->name('profile');
+
+    require __DIR__ . '/auth.php';
+});
