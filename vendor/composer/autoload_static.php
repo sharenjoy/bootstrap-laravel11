@@ -36,9 +36,9 @@ class ComposerStaticInitda9b7a1dc1dd923105198c572cc7df8d
         '7f7ac2ddea9cc3fb4b2cc201d63dbc10' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Log/functions.php',
         '493c6aea52f6009bab023b26c21a386a' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Support/functions.php',
         '58571171fd5812e6e447dce228f52f4d' => __DIR__ . '/..' . '/laravel/framework/src/Illuminate/Support/helpers.php',
+        '40275907c8566c390185147049ef6e5d' => __DIR__ . '/..' . '/livewire/livewire/src/helpers.php',
         'aadac1114cab8dc19489a7f6dc24c003' => __DIR__ . '/..' . '/pestphp/pest-plugin-arch/src/Autoload.php',
         '3bd81c9b8fcc150b69d8b63b4d2ccf23' => __DIR__ . '/..' . '/spatie/flare-client-php/src/helpers.php',
-        '40275907c8566c390185147049ef6e5d' => __DIR__ . '/..' . '/livewire/livewire/src/helpers.php',
         'f83ed111c2f97a0449abf067f157f418' => __DIR__ . '/..' . '/pestphp/pest/src/Functions.php',
         '7d2876738dc0328edeb8a103c76cd8e7' => __DIR__ . '/..' . '/pestphp/pest/src/Pest.php',
         '801c31d8ed748cfa537fa45402288c95' => __DIR__ . '/..' . '/psy/psysh/src/functions.php',
@@ -190,6 +190,7 @@ class ComposerStaticInitda9b7a1dc1dd923105198c572cc7df8d
         'F' => 
         array (
             'Fruitcake\\Cors\\' => 15,
+            'Flux\\' => 5,
             'Fidry\\CpuCoreCounter\\' => 21,
             'Faker\\' => 6,
         ),
@@ -239,8 +240,8 @@ class ComposerStaticInitda9b7a1dc1dd923105198c572cc7df8d
         'phpDocumentor\\Reflection\\' => 
         array (
             0 => __DIR__ . '/..' . '/phpdocumentor/reflection-common/src',
-            1 => __DIR__ . '/..' . '/phpdocumentor/type-resolver/src',
-            2 => __DIR__ . '/..' . '/phpdocumentor/reflection-docblock/src',
+            1 => __DIR__ . '/..' . '/phpdocumentor/reflection-docblock/src',
+            2 => __DIR__ . '/..' . '/phpdocumentor/type-resolver/src',
         ),
         'Whoops\\' => 
         array (
@@ -396,13 +397,13 @@ class ComposerStaticInitda9b7a1dc1dd923105198c572cc7df8d
         ),
         'Spatie\\LaravelIgnition\\' => 
         array (
-            0 => __DIR__ . '/..' . '/spatie/laravel-ignition/src',
-            1 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/laravel-ignition',
+            0 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/laravel-ignition',
+            1 => __DIR__ . '/..' . '/spatie/laravel-ignition/src',
         ),
         'Spatie\\Ignition\\' => 
         array (
-            0 => __DIR__ . '/..' . '/spatie/ignition/src',
-            1 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/ignition',
+            0 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/ignition',
+            1 => __DIR__ . '/..' . '/spatie/ignition/src',
         ),
         'Spatie\\FlareClient\\' => 
         array (
@@ -622,6 +623,10 @@ class ComposerStaticInitda9b7a1dc1dd923105198c572cc7df8d
         'Fruitcake\\Cors\\' => 
         array (
             0 => __DIR__ . '/..' . '/fruitcake/php-cors/src',
+        ),
+        'Flux\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/livewire/flux/src',
         ),
         'Fidry\\CpuCoreCounter\\' => 
         array (
@@ -1856,6 +1861,16 @@ class ComposerStaticInitda9b7a1dc1dd923105198c572cc7df8d
         'Fidry\\CpuCoreCounter\\Finder\\_NProcessorFinder' => __DIR__ . '/..' . '/fidry/cpu-core-counter/src/Finder/_NProcessorFinder.php',
         'Fidry\\CpuCoreCounter\\NumberOfCpuCoreNotFound' => __DIR__ . '/..' . '/fidry/cpu-core-counter/src/NumberOfCpuCoreNotFound.php',
         'Fidry\\CpuCoreCounter\\ParallelisationResult' => __DIR__ . '/..' . '/fidry/cpu-core-counter/src/ParallelisationResult.php',
+        'Flux\\AssetManager' => __DIR__ . '/..' . '/livewire/flux/src/AssetManager.php',
+        'Flux\\ClassBuilder' => __DIR__ . '/..' . '/livewire/flux/src/ClassBuilder.php',
+        'Flux\\Concerns\\InteractsWithComponents' => __DIR__ . '/..' . '/livewire/flux/src/Concerns/InteractsWithComponents.php',
+        'Flux\\Console\\ActivateCommand' => __DIR__ . '/..' . '/livewire/flux/src/Console/ActivateCommand.php',
+        'Flux\\Console\\IconCommand' => __DIR__ . '/..' . '/livewire/flux/src/Console/IconCommand.php',
+        'Flux\\Console\\PublishCommand' => __DIR__ . '/..' . '/livewire/flux/src/Console/PublishCommand.php',
+        'Flux\\Flux' => __DIR__ . '/..' . '/livewire/flux/src/Flux.php',
+        'Flux\\FluxManager' => __DIR__ . '/..' . '/livewire/flux/src/FluxManager.php',
+        'Flux\\FluxServiceProvider' => __DIR__ . '/..' . '/livewire/flux/src/FluxServiceProvider.php',
+        'Flux\\FluxTagCompiler' => __DIR__ . '/..' . '/livewire/flux/src/FluxTagCompiler.php',
         'Fruitcake\\Cors\\CorsService' => __DIR__ . '/..' . '/fruitcake/php-cors/src/CorsService.php',
         'Fruitcake\\Cors\\Exceptions\\InvalidOptionException' => __DIR__ . '/..' . '/fruitcake/php-cors/src/Exceptions/InvalidOptionException.php',
         'GrahamCampbell\\ResultType\\Error' => __DIR__ . '/..' . '/graham-campbell/result-type/src/Error.php',
