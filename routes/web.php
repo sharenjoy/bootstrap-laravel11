@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
+use Livewire\Volt\Volt;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
 Route::group([
@@ -15,7 +16,7 @@ Route::group([
 
     /** ADD ALL LOCALIZED ROUTES INSIDE THIS GROUP **/
 
-    Route::view('/', 'welcome');
+    Volt::route('/', 'home')->name('home');
 
     /** ALL DASHBOARD ROUTES **/
 
