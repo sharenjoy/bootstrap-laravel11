@@ -3685,6 +3685,66 @@
             "install-path": "../livewire/flux"
         },
         {
+            "name": "livewire/flux-pro",
+            "version": "1.0.20",
+            "version_normalized": "1.0.20.0",
+            "dist": {
+                "type": "zip",
+                "url": "https://composer.fluxui.dev/download/9d6a84da-59d2-412f-b3bf-24f6103a46b4/flux-pro-1.0.20.zip",
+                "reference": "9b1e090ea4339582561dd0242848c6efb3d11d36",
+                "shasum": "c3d824267232c390e0dd98a0ba9409766a9b92e4"
+            },
+            "require": {
+                "illuminate/console": "^10.0|^11.0",
+                "illuminate/support": "^10.0|^11.0",
+                "illuminate/view": "^10.0|^11.0",
+                "laravel/prompts": "^0.1.24|^0.2|^0.3",
+                "livewire/flux": "1.0.20",
+                "livewire/livewire": "^3.5.12",
+                "php": "^8.1",
+                "symfony/console": "^6.0|^7.0"
+            },
+            "time": "2024-11-05T12:03:31+00:00",
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "Flux": "FluxPro\\FluxPro"
+                    },
+                    "providers": [
+                        "FluxPro\\FluxProServiceProvider"
+                    ]
+                }
+            },
+            "installation-source": "dist",
+            "autoload": {
+                "files": [
+                    "src/helpers.php"
+                ],
+                "psr-4": {
+                    "FluxPro\\": "src/"
+                }
+            },
+            "license": [
+                "proprietary"
+            ],
+            "authors": [
+                {
+                    "name": "Caleb Porzio",
+                    "email": "calebporzio@gmail.com"
+                }
+            ],
+            "description": "The pro version of Flux, the official UI component library for Livewire.",
+            "keywords": [
+                "components",
+                "flux",
+                "laravel",
+                "livewire",
+                "ui"
+            ],
+            "install-path": "../livewire/flux-pro"
+        },
+        {
             "name": "livewire/livewire",
             "version": "v3.5.12",
             "version_normalized": "3.5.12.0",
