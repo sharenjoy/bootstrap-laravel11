@@ -18,7 +18,13 @@ Route::group([
 
     Volt::route('/', 'home')->name('home');
 
-    /** ALL DASHBOARD ROUTES **/
+    Route::group([
+        'prefix' => 'member',
+        'middleware' => ['auth', 'verified']
+    ], function () {
+        /** ALL MEMBER ROUTES **/
+        Volt::route('dashboard', 'member.dashboard')->name('member.dashboard');
+    });
 
     Route::view('dashboard', 'dashboard')
         ->middleware(['auth', 'verified'])
