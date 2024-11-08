@@ -14,21 +14,11 @@
         <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
         <link rel="apple-touch-icon" sizes="72x72" href="img/apple-touch-icon-72x72.png" />
         <link rel="apple-touch-icon" sizes="114x114" href="img/apple-touch-icon-114x114.png" /> --}}
+
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=inter:400,500,600&display=swap" rel="stylesheet" />
 
-        <script src="//cdn.tailwindcss.com"></script>
-
-		<!-- Main CSS -->
-        <script>
-            tailwind.config = {
-                theme: {
-                    fontFamily: {
-                        'sans': ['Inter', 'sans-serif'],
-                    }
-                }
-            }
-        </script>
+        @vite(['resources/css/app.css'])
 
         @fluxStyles
 	</head>
