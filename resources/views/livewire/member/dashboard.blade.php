@@ -1,11 +1,9 @@
 <?php
 
-use Livewire\Attributes\Layout;
-use Livewire\Volt\Component;
+use App\Livewire\Member\MemberComponent;
 
 new
-#[Layout('layouts.member')]
-class extends Component {
+class extends MemberComponent {
     //
 }; ?>
 
