@@ -7,12 +7,14 @@
 @php
 $classes = Flux::classes()
     ->add('h-12 w-full flex items-center px-3 py-2')
-    ->add('font-medium text-sm text-zinc-800 dark:text-white')
+    ->add('font-medium text-base sm:text-sm text-zinc-800 dark:text-white')
     ->add('pl-11') // Make room for magnifying glass icon...
     ->add(($closable || $clearable) ? 'pr-11' : '') // Make room for close/clear button...
     ->add('outline-none')
     ->add('border-b border-zinc-200 dark:border-zinc-600')
     ->add('bg-white dark:bg-zinc-700')
+    // The below reverts styles added by Tailwind Forms plugin
+    ->add('border-t-0 border-l-0 border-r-0 focus:ring-0 focus:border-zinc-200 dark:focus:border-zinc-600')
     ;
 @endphp
 

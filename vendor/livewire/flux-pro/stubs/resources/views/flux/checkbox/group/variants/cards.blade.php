@@ -1,5 +1,3 @@
-@php $attributes = $unescapedForwardedAttributes ?? $attributes; @endphp
-
 @props([
     'name' => $attributes->whereStartsWith('wire:model')->first(),
     'variant' => null,

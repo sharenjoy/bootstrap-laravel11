@@ -1,5 +1,3 @@
-@php $attributes = $unescapedForwardedAttributes ?? $attributes; @endphp
-
 @aware([ 'size' ])
 
 @props([

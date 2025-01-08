@@ -7,7 +7,7 @@
         {{ $slot }}
     </button>
 <?php else: ?>
-    <div type="button" {{ $attributes }}>
+    <div {{ $attributes }}>
         {{ $slot }}
     </div>
 <?php endif; ?>

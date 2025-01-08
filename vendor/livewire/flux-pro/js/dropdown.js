@@ -1,4 +1,4 @@
-import { assignId, detangle, element, inject, interest, on, removeAttribute, setAttribute } from './utils.js'
+import { assignId, detangle, element, interest, lockScroll, on, removeAttribute, setAttribute } from './utils.js'
 import { Controllable } from './mixins/controllable.js'
 import { Popoverable } from './mixins/popoverable.js'
 import { Anchorable } from './mixins/anchorable.js'
@@ -30,6 +30,14 @@ class UIDropdown extends UIElement {
                 ? overlay._anchorable.reposition()
                 : overlay._anchorable.cleanup()
         })
+
+        if (['ui-menu', 'ui-context'].includes(overlay.localName)) {
+            let { lock, unlock } = lockScroll()
+
+            overlay._popoverable.onChange(() => {
+                overlay._popoverable.getState() ? lock() : unlock()
+            })
+        }
 
         // Link with controllable...
         this._controllable.initial(initial => overlay._popoverable.setState(initial))

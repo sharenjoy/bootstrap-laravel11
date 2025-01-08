@@ -293,11 +293,22 @@ export function isUsingMouse() {
 }
 
 export function search(el, callback) {
+    let runningQuery = ''
+
+    let clearRunningQuery = debounce(() => {
+        runningQuery = ''
+    }, 300)
+
     el.addEventListener('keydown', e => {
         if ((e.key.length === 1 && /[a-zA-Z]/.test(e.key))) {
-            callback(e.key)
+            runningQuery += e.key
+
+            callback(runningQuery)
+
             e.stopPropagation()
         }
+
+        clearRunningQuery()
     })
 }
 
@@ -337,7 +348,7 @@ export function detangle() {
  * Interest detection...
  */
 
-export function interest(trigger, panel, { gain, lose, focusable, safeArea }) {
+export function interest(trigger, panel, { gain, lose, focusable, useSafeArea }) {
     let engaged = false
 
     focusable && document.addEventListener('focusin', e => {
@@ -380,7 +391,7 @@ export function interest(trigger, panel, { gain, lose, focusable, safeArea }) {
 
         // Timeout is here in case anchor positioning takes a tick...
         setTimeout(() => {
-            let { safeArea, redraw: redrawSafeArea, remove } = createSafeArea(trigger, panel, e.clientX, e.clientY)
+            let { safeArea, redraw: redrawSafeArea, remove } = useSafeArea ? createSafeArea(trigger, panel, e.clientX, e.clientY) : nullSafeArea()
 
             removeSafeArea = remove
 
@@ -570,6 +581,12 @@ export function setAttribute(el, name, value) {
     })
 }
 
+export function removeAndReleaseAttribute(el, name) {
+    removeAttribute(el, name)
+
+    releaseAttribute(el, name)
+}
+
 export function removeAttribute(el, name) {
     if (el._durableAttributeObserver === undefined) {
         el._durableAttributeObserver = attributeObserver(el, [ name ])
@@ -582,6 +599,12 @@ export function removeAttribute(el, name) {
     el._durableAttributeObserver.pause(() => {
         el.removeAttribute(name)
     })
+}
+
+export function releaseAttribute(el, name) {
+    if (! el?._durableAttributeObserver?.hasAttribute(name)) return
+
+    el._durableAttributeObserver.releaseAttribute(name)
 }
 
 function attributeObserver(el, initialAttributes) {
@@ -612,6 +635,12 @@ function attributeObserver(el, initialAttributes) {
             observer.observe(el, { attributeFilter: this.attributes, attributeOldValue: true })
         },
 
+        releaseAttribute(name) {
+            if (! this.hasAttribute(name)) return
+
+            observer.observe(el, { attributeFilter: this.attributes, attributeOldValue: true })
+        },
+
         pause(callback) {
             // We need to flush the observer's buffer before disconnecting...
             processMutations(observer.takeRecords())
@@ -622,5 +651,70 @@ function attributeObserver(el, initialAttributes) {
 
             observer.observe(el, { attributeFilter: this.attributes, attributeOldValue: true })
         },
+    }
+}
+
+function nullSafeArea() {
+    return {
+        safeArea: { contains: () => false },
+        redraw: () => {},
+        remove: () => {},
+    }
+}
+
+export function debounce(callback, delay) {
+    let timeout
+
+    return (...args) => {
+        clearTimeout(timeout)
+
+        timeout = setTimeout(() => {
+            callback(...args)
+        }, delay)
+    }
+}
+
+let lockCount = 0
+
+export function lockScroll(allowScroll = false) {
+    if (allowScroll) return { lock: () => {}, unlock: () => {} }
+
+    let undoLockStyles = () => {}
+
+    return {
+        lock() {
+            lockCount++
+
+            if (lockCount > 1) return
+
+            undoLockStyles = chain(
+                setStyle(document.documentElement, 'paddingRight', `${window.innerWidth - document.documentElement.clientWidth}px`),
+                setStyle(document.documentElement, 'overflow', 'hidden'),
+            )
+        },
+
+        unlock() {
+            lockCount = Math.max(0, lockCount - 1)
+
+            undoLockStyles()
+        },
+    }
+}
+
+export function setStyle(element, style, value) {
+    let currentValue = element.style[style];
+
+    element.style[style] = value;
+
+    return () => {
+        element.style[style] = currentValue;
+    }
+}
+
+export function chain(...fns) {
+    return (...args) => {
+        for (let fn of fns) {
+            fn(...args)
+        }
     }
 }

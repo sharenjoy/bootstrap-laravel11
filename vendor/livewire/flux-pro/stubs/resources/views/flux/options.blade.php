@@ -2,7 +2,9 @@
 
 @props([
     'searchable' => null,
+    'indicator' => null,
     'search' => null,
+    'empty' => null,
 ])
 
 @php
@@ -12,6 +14,9 @@ $classes = Flux::classes()
     ->add('border border-zinc-200 dark:border-zinc-600')
     ->add('bg-white dark:bg-zinc-700')
     ;
+
+// Searchable can also be a slot...
+if (is_object($searchable)) $search = $searchable;
 @endphp
 
 <?php if (! $searchable): ?>
@@ -27,8 +32,11 @@ $classes = Flux::classes()
         <ui-options class="max-h-[20rem] overflow-y-auto -mr-[.3125rem] -mt-[.3125rem] pt-[.3125rem] pr-[.3125rem] -mb-[.3125rem] pb-[.3125rem]">
             {{ $slot }}
 
-            <flux:select.empty>{!! __('No results found') !!}</flux:select.empty>
+            <?php if ($empty): ?>
+                <ui-empty class="data-[hidden]:hidden">{{ $empty }}</ui-empty>
+            <?php else: ?>
+                <flux:select.empty>{!! __('No results found') !!}</flux:select.empty>
+            <?php endif; ?>
         </ui-options>
     </div>
 <?php endif; ?>
-

@@ -1,5 +1,4 @@
 import { computePosition, autoUpdate, flip, shift, offset, size } from '@floating-ui/dom'
-import { setAttribute, tap } from '../utils.js'
 import { Mixin } from './mixin.js'
 
 export class Anchorable extends Mixin {
@@ -29,13 +28,7 @@ export class Anchorable extends Mixin {
 
         this.reposition = (...args) => {
             if (this.options().auto) {
-                cleanupAutoUpdate = autoUpdate(this.options().reference, this.el, reposition, {
-                    ancestorScroll: true,
-                    ancestorResize: true,
-                    elementResize: true,
-                    layoutShift: true,
-                    animationFrame: true, // This may be too slow, but otherwise the anchoring is pretty janky...
-                  })
+                cleanupAutoUpdate = autoUpdate(this.options().reference, this.el, reposition)
             } else {
                 reposition(...args)
             }

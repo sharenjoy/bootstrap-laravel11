@@ -1,16 +1,11 @@
 @aware([ 'variant' ])
 
 @props([
-    'variant' => null,
+    'variant' => 'default',
 ])
 
 @php
-$variant = Flux::componentExists('radio.variants.' . $variant)
-    ? $variant : null;
-
-$variant = $variant === null ? 'default' : $variant;
+$variant = Flux::componentExists('radio.variants.' . $variant) ? $variant : 'default';
 @endphp
 
-<x-dynamic-component :component="'flux::radio.variants.' . $variant" :$attributes :unescapedForwardedAttributes="$attributes">
-    {{ $slot }}
-</x-dynamic-component>
+<flux:delegate-component :component="'radio.variants.' . $variant">{{ $slot }}</flux:delegate-component>

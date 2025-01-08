@@ -13,7 +13,5 @@ $classes = Flux::classes()
     ->add('text-zinc-500 dark:text-white/70')
     ;
 @endphp
-
-<div {{ $attributes->class($classes) }} data-flux-text>
-    {{ $slot }}
-</div>
+{{-- NOTE: It's important that this file has NO newline at the end of the file. --}}
+<div {{ $attributes->class($classes) }} data-flux-text>{{ $slot }}</div>

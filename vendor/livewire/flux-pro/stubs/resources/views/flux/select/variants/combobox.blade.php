@@ -1,15 +1,22 @@
-@php $attributes = $unescapedForwardedAttributes ?? $attributes; @endphp
-
 @props([
     'name' => $attributes->whereStartsWith('wire:model')->first(),
     'placeholder' => null,
     'searchable' => null,
+    'multiple' => null,
     'invalid' => null,
     'input' => null,
     'size' => null,
 ])
 
 @php
+if ($searchable) {
+    throw new \Exception('Comboboxes do not support the searchable prop.');
+}
+
+if ($multiple) {
+    throw new \Exception('Comboboxes do not support the multiple prop.');
+}
+
 $invalid ??= ($name && $errors->has($name));
 
 $class= Flux::classes()

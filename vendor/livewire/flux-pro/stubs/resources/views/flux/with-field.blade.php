@@ -37,4 +37,3 @@ extract(Flux::forwardedAttributes($attributes, [
 <?php else: ?>
     {{ $slot }}
 <?php endif; ?>
-

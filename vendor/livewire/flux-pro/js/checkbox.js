@@ -59,10 +59,10 @@ class UICheckboxGroup extends UIControl {
         let setCheckAllIndeterminate = () => {
             if (this._selectable.allAreSelected()) {
                 checkAll.indeterminate = false
-                checkAll.checked = true
+                checkAll._selectable.select()
             } else if (this._selectable.noneAreSelected()) {
                 checkAll.indeterminate = false
-                checkAll.checked = false
+                checkAll._selectable.deselect()
             } else {
                 checkAll.indeterminate = true
             }

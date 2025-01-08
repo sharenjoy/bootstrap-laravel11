@@ -1,4 +1,6 @@
 @props([
+    'dismissible' => null,
+    'position' => null,
     'closable' => null,
     'trigger' => null,
     'variant' => null,
@@ -11,12 +13,17 @@ $closable ??= $variant === 'bare' ? false : true;
 $classes = Flux::classes()
     ->add(match ($variant) {
         default => 'p-6 [:where(&)]:max-w-xl shadow-lg rounded-xl',
+        'flyout' => match($position) {
+            'bottom' => 'fixed m-0 p-8 min-w-[100vw] overflow-y-auto mt-auto [--fx-flyout-translate:translateY(50px)] border-t',
+            'left' => 'fixed m-0 p-8 max-h-dvh min-h-dvh md:[:where(&)]:min-w-[25rem] overflow-y-auto mr-auto [--fx-flyout-translate:translateX(-50px)] border-r',
+            default => 'fixed m-0 p-8 max-h-dvh min-h-dvh md:[:where(&)]:min-w-[25rem] overflow-y-auto ml-auto [--fx-flyout-translate:translateX(50px)] border-l',
+        },
         'flyout' => 'fixed m-0 p-8 max-h-dvh min-h-dvh md:[:where(&)]:min-w-[25rem] overflow-y-auto ml-auto',
         'bare' => '',
     })
     ->add(match ($variant) {
         default => 'bg-white dark:bg-zinc-800 border border-transparent dark:border-zinc-700',
-        'flyout' => 'bg-white dark:bg-zinc-800 border border-transparent dark:border-zinc-700',
+        'flyout' => 'bg-white dark:bg-zinc-800 border-transparent dark:border-zinc-700',
         'bare' => 'bg-transparent',
     });
 
@@ -27,7 +34,18 @@ if ($attributes['@close'] ?? null) {
     unset($attributes['@close']);
 }
 
-[ $styleAttributes, $attributes ] = Flux::splitAttributes($attributes, ['class', 'style', 'wire:close', 'x-on:close']);
+// Support <flux:modal ... @cancel="?"> syntax...
+if ($attributes['@cancel'] ?? null) {
+    $attributes['wire:cancel'] = $attributes['@cancel'];
+
+    unset($attributes['@cancel']);
+}
+
+if ($dismissible === false) {
+    $attributes = $attributes->merge(['disable-click-outside' => '']);
+}
+
+[ $styleAttributes, $attributes ] = Flux::splitAttributes($attributes, ['class', 'style', 'wire:close', 'x-on:close', 'wire:cancel', 'x-on:cancel']);
 @endphp
 
 <ui-modal {{ $attributes }} data-flux-modal>

@@ -15,6 +15,9 @@ extract(Flux::forwardedAttributes($attributes, [
 @php
 $classes = Flux::classes()
     ->add('w-full flex items-center gap-4')
+    // NOTE: We need to add relative positioning here to prevent odd overflow behaviors because of
+    // "sr-only": https://github.com/tailwindlabs/tailwindcss/discussions/12429
+    ->add('relative')
     ;
 
 [ $styleAttributes, $attributes ] = Flux::splitAttributes($attributes);
@@ -35,6 +38,16 @@ $classes = Flux::classes()
     <input
         x-ref="input"
         x-on:click.stop {{-- Without this, the parent element's click listener will ".prevent" the file input from being clicked... --}}
+        {{-- This is here because clearing the input via .value = "" doesn't trigger a change event... --}}
+        {{-- We need it to so that we can know to clear the selected file labels when the input is cleared... --}}
+        x-init="Object.defineProperty($el, 'value', {
+          ...Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value'),
+            set(value) {
+            Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(this, value);
+
+            if(! value) this.dispatchEvent(new Event('change', { bubbles: true }))
+          }
+        })"
         type="file"
         class="sr-only"
         tabindex="-1"

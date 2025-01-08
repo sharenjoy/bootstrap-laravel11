@@ -19,15 +19,15 @@ class AssetManager
     public function registerAssetDirective()
     {
         Blade::directive('fluxStyles', function ($expression) {
-            return <<<'PHP'
-            {!! app('flux')->styles() !!}
+            return <<<PHP
+            {!! app('flux')->styles($expression) !!}
             PHP;
         });
 
         Blade::directive('fluxScripts', function ($expression) {
-            return <<<'PHP'
+            return <<<PHP
             <?php app('livewire')->forceAssetInjection(); ?>
-            {!! app('flux')->scripts() !!}
+            {!! app('flux')->scripts($expression) !!}
             PHP;
         });
     }
@@ -51,9 +51,27 @@ class AssetManager
                 ? $this->pretendResponseIsFile(__DIR__.'/../../flux-pro/dist/flux.min.js', 'text/javascript')
                 : $this->pretendResponseIsFile(__DIR__.'/../../flux/dist/flux-lite.min.js', 'text/javascript');
         });
+
+        Route::get('/flux/editor.css', function () {
+            if (! Flux::pro()) throw new \Exception('Flux Pro is required to use the Flux editor.');
+
+            return $this->pretendResponseIsFile(__DIR__.'/../../flux-pro/dist/editor.css', 'text/css');
+        });
+
+        Route::get('/flux/editor.js', function () {
+            if (! Flux::pro()) throw new \Exception('Flux Pro is required to use the Flux editor.');
+
+            return $this->pretendResponseIsFile(__DIR__.'/../../flux-pro/dist/editor.js', 'text/javascript');
+        });
+
+        Route::get('/flux/editor.min.js', function () {
+            if (! Flux::pro()) throw new \Exception('Flux Pro is required to use the Flux editor.');
+
+            return $this->pretendResponseIsFile(__DIR__.'/../../flux-pro/dist/editor.min.js', 'text/javascript');
+        });
     }
 
-    public static function scripts()
+    public static function scripts($options = [])
     {
         $manifest = Flux::pro()
             ? json_decode(file_get_contents(__DIR__.'/../../flux-pro/dist/manifest.json'), true)
@@ -61,22 +79,59 @@ class AssetManager
 
         $versionHash = $manifest['/flux.js'];
 
+        $nonce = isset($options) && isset($options['nonce']) ? ' nonce="' . $options['nonce'] . '"' : '';
+
         if (config('app.debug')) {
-            return '<script src="/flux/flux.js?id='. $versionHash . '" data-navigate-once></script>';
+            return '<script src="/flux/flux.js?id='. $versionHash . '" data-navigate-once' . $nonce . '></script>';
         } else {
-            return '<script src="/flux/flux.min.js?id='. $versionHash . '" data-navigate-once></script>';
+            return '<script src="/flux/flux.min.js?id='. $versionHash . '" data-navigate-once' . $nonce . '></script>';
         }
     }
 
-    public static function styles()
+    public static function styles($options = [])
     {
         $manifest = Flux::pro()
             ? json_decode(file_get_contents(__DIR__.'/../../flux-pro/dist/manifest.json'), true)
             : json_decode(file_get_contents(__DIR__.'/../../flux/dist/manifest.json'), true);
 
-        $versionHash = $manifest['/flux.js'];
+        $versionHash = $manifest['/flux.css'];
 
-        return '<link rel="stylesheet" href="/flux/flux.css?id='. $versionHash . '">';
+        $nonce = isset($options) && isset($options['nonce']) ? ' nonce="' . $options['nonce'] . '"' : '';
+
+        return <<<'HTML'
+<link rel="stylesheet" href="/flux/flux.css?id='. $versionHash . '"' . $nonce . '>
+<script>
+    let appearance = window.localStorage.getItem('flux.appearance') || 'system'
+
+    if (appearance === 'system') {
+        appearance = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    }
+
+    appearance === 'dark' ? document.documentElement.classList.add('dark') : document.documentElement.classList.remove('dark')
+</script>
+HTML;
+    }
+
+    public static function editorScripts()
+    {
+        $manifest = json_decode(file_get_contents(__DIR__.'/../../flux-pro/dist/manifest.json'), true);
+
+        $versionHash = $manifest['/editor.js'];
+
+        if (config('app.debug')) {
+            return '<script src="/flux/editor.js?id='. $versionHash . '" defer></script>';
+        } else {
+            return '<script src="/flux/editor.min.js?id='. $versionHash . '" defer></script>';
+        }
+    }
+
+    public static function editorStyles()
+    {
+        $manifest = json_decode(file_get_contents(__DIR__.'/../../flux-pro/dist/manifest.json'), true);
+
+        $versionHash = $manifest['/editor.css'];
+
+        return '<link rel="stylesheet" href="/flux/editor.css?id='. $versionHash . '">';
     }
 
     public function pretendResponseIsFile($file, $contentType = 'application/javascript; charset=utf-8')

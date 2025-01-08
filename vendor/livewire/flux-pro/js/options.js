@@ -5,7 +5,7 @@ import { inject, element, on, search, assignId, removeAttribute, setAttribute } 
 import { FocusableGroup, Focusable } from './mixins/focusable.js'
 import { UIElement } from './element.js'
 
-class UIOptions extends UIElement {
+export class UIOptions extends UIElement {
     boot() {
         setAttribute(this, 'tabindex', '-1')
 
@@ -36,7 +36,10 @@ class UIOption extends UIElement {
 
         setAttribute(target, 'role', 'option')
 
-        this._filterable = new Filterable(target, { mirror: this })
+        this._filterable = new Filterable(target, {
+            mirror: this,
+            keep: (!! this.closest('ui-empty')) || this.getAttribute('filter') === 'manual',
+        })
 
         if (this._disabled) return
 
@@ -95,4 +98,3 @@ inject(({ css }) => css`ui-options:not([popover]), ui-option { display: block; c
 
 element('options', UIOptions)
 element('option', UIOption)
-

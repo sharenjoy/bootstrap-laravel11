@@ -4,7 +4,9 @@
     'placeholder' => null,
     'clearable' => null,
     'invalid' => false,
+    'suffix' => null,
     'size' => null,
+    'max' => null,
 ])
 
 @php
@@ -32,21 +34,21 @@ $classes = Flux::classes()
 @endphp
 
 <button type="button" {{ $attributes->class($classes) }} @if ($invalid) data-invalid @endif data-flux-group-target data-flux-select-button>
-    <ui-selected wire:ignore class="truncate flex gap-2 [&>*:has(+_*)]:after:content-[',_'] text-left flex-1 text-zinc-700 [[disabled]_&]:text-zinc-500 dark:text-zinc-300 dark:[[disabled]_&]:text-zinc-400">
-        <span class="text-zinc-400 [[disabled]_&]:text-zinc-400/70 dark:text-zinc-400 dark:[[disabled]_&]:text-zinc-500" data-flux-select-placeholder>
-            {{ $placeholder }}
-        </span>
-    </ui-selected>
+    <?php if ($slot->isNotEmpty()): ?>
+        {{ $slot }}
+    <?php else: ?>
+        <flux:select.selected :$placeholder :$max :$suffix />
+    <?php endif; ?>
 
     <?php if ($clearable): ?>
         <flux:button as="div"
-            class="cursor-pointer ml-2 -mr-2 [[data-flux-select-button]:has([data-flux-select-placeholder])_&]:hidden"
+            class="cursor-pointer ml-2 -mr-2 [[data-flux-select-button]:has([data-flux-select-placeholder])_&]:hidden [[data-flux-select]:has([disabled])_&]:hidden"
             variant="subtle"
             :size="$size === 'sm' ? 'xs' : 'sm'"
             square
             tabindex="-1"
             aria-label="Clear selected"
-            x-on:click.prevent.stop="let select = $el.closest('ui-select'); select.value = select.hasAttribute('multiple') ? [] : null"
+            x-on:click.prevent.stop="let select = $el.closest('ui-select'); select.value = select.hasAttribute('multiple') ? [] : null; select.dispatchEvent(new Event('change', { bubbles: false })); select.dispatchEvent(new Event('input', { bubbles: false }))"
         >
             <flux:icon.x-mark variant="micro" />
         </flux:button>

@@ -1,7 +1,7 @@
 import { Controllable } from './mixins/controllable.js'
 import { Dialogable } from './mixins/dialogable.js'
 import { UIElement } from './element.js'
-import { detangle, element, inject, on, removeAttribute, setAttribute } from './utils.js'
+import { detangle, element, lockScroll, on, removeAttribute, setAttribute } from './utils.js'
 
 class UIModal extends UIElement {
     boot() {
@@ -13,7 +13,9 @@ class UIModal extends UIElement {
 
         if (! dialog) return
 
-        dialog._dialogable = new Dialogable(dialog)
+        dialog._dialogable = new Dialogable(dialog, {
+            clickOutside: ! this.hasAttribute('disable-click-outside'),
+        })
 
         this._controllable.initial(initial => initial && dialog._dialogable.show())
         this._controllable.getter(() => dialog._dialogable.getState())
@@ -38,6 +40,12 @@ class UIModal extends UIElement {
         dialog._dialogable.onChange(() => refresh())
 
         refresh()
+
+        let { lock, unlock } = lockScroll()
+
+        dialog._dialogable.onChange(() => {
+            dialog._dialogable.getState() ? lock() : unlock()
+        })
 
         button && on(button, 'click', e => {
             dialog._dialogable.show()

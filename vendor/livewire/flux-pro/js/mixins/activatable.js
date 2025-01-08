@@ -25,6 +25,12 @@ export class ActivatableGroup extends MixinGroup {
         this.filterAwareWalker().first()?.use(Activatable).activate()
     }
 
+    activateBySearch(query) {
+        let found = this.filterAwareWalker().find(i => i.textContent.toLowerCase().trim().startsWith(query.toLowerCase()))
+
+        found?.use(Activatable).activate()
+    }
+
     activateSelectedOrFirst(selectedEl) {
         let isHidden = el => el.matches('ui-option')
             ? (getComputedStyle(el).display === 'none')

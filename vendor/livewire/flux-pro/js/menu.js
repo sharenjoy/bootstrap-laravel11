@@ -1,4 +1,4 @@
-import { assignId, element, inject, interest, isUsingMouse, on, search, removeAttribute, setAttribute, walker, detangle } from './utils.js'
+import { assignId, element, inject, interest, on, search, setAttribute, walker, detangle } from './utils.js'
 import { SelectableGroup, Selectable } from './mixins/selectable.js'
 import { FocusableGroup, Focusable } from './mixins/focusable.js'
 import { Controllable } from './mixins/controllable.js'
@@ -8,7 +8,7 @@ import { Anchorable } from './mixins/anchorable.js'
 import { UIElement } from './element.js'
 import { UISelect } from './select.js'
 
-class UIMenu extends UIElement {
+export class UIMenu extends UIElement {
     boot() {
         this._focusable = new FocusableGroup(this, { wrap: false, ensureTabbable: false })
 
@@ -108,7 +108,7 @@ class UIMenuCheckbox extends UIElement {
             setAttribute(button, 'aria-disabled', 'true')
         }
 
-        let id = assignId(button, 'menu-checkbox')
+        assignId(button, 'menu-checkbox')
 
         setAttribute(button, 'role', 'menuitemcheckbox')
 
@@ -155,7 +155,7 @@ class UIMenuRadio extends UIElement {
             setAttribute(button, 'aria-disabled', 'true')
         }
 
-        let id = assignId(button, 'menu-radio')
+        assignId(button, 'menu-radio')
 
         setAttribute(button, 'role', 'menuitemradio')
 
@@ -246,7 +246,7 @@ function initializeMenuItem(el) {
         setAttribute(target, 'aria-disabled', 'true')
     }
 
-    let id = assignId(target, 'menu-item')
+    assignId(target, 'menu-item')
 
     setAttribute(target, 'role', 'menuitem')
 

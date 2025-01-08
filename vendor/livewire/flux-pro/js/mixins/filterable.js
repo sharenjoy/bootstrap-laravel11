@@ -51,12 +51,13 @@ export class Filterable extends Mixin {
     groupedByType = FilterableGroup
 
     boot({ options }) {
-        options({ mirror: null })
+        options({ mirror: null, keep: false })
 
         this.onChanges = []
     }
 
     filter() {
+        if (this.options().keep) return
         setAttribute(this.el, 'data-hidden', '')
         if (this.options().mirror) setAttribute(this.options().mirror, 'data-hidden', '')
     }

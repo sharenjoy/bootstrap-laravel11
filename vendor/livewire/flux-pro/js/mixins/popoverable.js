@@ -1,11 +1,13 @@
 import { on, setAttribute } from '../utils.js'
 import { Mixin } from './mixin.js'
 
-let currentlyOpenPopovers = new Set
+let currentlyOpenPopoversByScope = new Map
 
 export class Popoverable extends Mixin {
     boot({ options }) {
-        options({ trigger: null })
+        options({ trigger: null, scope: null })
+
+        let scope = this.options().scope || 'global'
 
         setAttribute(this.el, 'popover', 'manual')
 
@@ -19,7 +21,7 @@ export class Popoverable extends Mixin {
             this.state = e.newState === 'open'
 
             if (this.state) {
-                closeOtherOpenPopovers(this.el, currentlyOpenPopovers)
+                closeOtherOpenPopovers(this.el, scope)
 
                 let controller = new AbortController()
                 let trigger = document.activeElement
@@ -46,8 +48,21 @@ export class Popoverable extends Mixin {
         })
 
         on(this.el, 'toggle', e => {
-            if (e.newState === 'open') currentlyOpenPopovers.add(this.el)
-            if (e.newState === 'closed') currentlyOpenPopovers.delete(this.el)
+            if (e.newState === 'open') {
+                if (! currentlyOpenPopoversByScope.has(scope)) {
+                    currentlyOpenPopoversByScope.set(scope, new Set)
+                }
+
+                currentlyOpenPopoversByScope.get(scope).add(this.el)
+            } else if (e.newState === 'closed') {
+                if (! currentlyOpenPopoversByScope.has(scope)) return
+
+                currentlyOpenPopoversByScope.get(scope).delete(this.el)
+
+                if (currentlyOpenPopoversByScope.get(scope).size === 0) {
+                    currentlyOpenPopoversByScope.delete(scope)
+                }
+            }
         })
     }
 
@@ -76,9 +91,11 @@ export class Popoverable extends Mixin {
     }
 }
 
-function closeOtherOpenPopovers(el, currentlyOpenPopovers) {
+function closeOtherOpenPopovers(el, scope) {
     // Close other open popovers...
-    currentlyOpenPopovers.forEach(popoverEl => {
+    if (! currentlyOpenPopoversByScope.has(scope)) return
+
+    currentlyOpenPopoversByScope.get(scope).forEach(popoverEl => {
         if (el.contains(popoverEl) || popoverEl.contains(el)) return
 
         popoverEl.hidePopover()

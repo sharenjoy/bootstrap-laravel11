@@ -13,6 +13,7 @@ $insetClasses = Flux::applyInset($inset, top: '-mt-1', right: '-mr-2', bottom: '
 $classes = Flux::classes()
     ->add('inline-flex items-center font-medium whitespace-nowrap')
     ->add($insetClasses)
+    ->add('[print-color-adjust:exact]')
     ->add(match ($size) {
         'lg' => 'text-sm py-1.5 [&_[data-flux-badge-icon]]:mr-2',
         default => 'text-sm py-1 [&_[data-flux-badge-icon]]:mr-1.5',

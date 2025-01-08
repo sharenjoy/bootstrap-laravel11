@@ -11,7 +11,11 @@ class UITabGroup extends UIElement {
     }
 
     mount() {
-        this.walkPanels(el => initializePanel(el))
+        this.walkPanels(el => initializePanel(el)); // We need this semicolon to separate the this call from the next one...
+
+        (new MutationObserver(mutations => {
+            this.walkPanels(el => initializePanel(el))
+        })).observe(this, { childList: true })
     }
 
     showPanel(name) {
@@ -82,13 +86,27 @@ class UITabs extends UIControl {
         if (! this._selectableGroup.getState()) {
             this._selectableGroup.selectFirst()
         }
+
+        (new MutationObserver(mutations => {
+            this.initializeTabs()
+
+            // If a panel is added dynamically, and that panel is selected, we need to show it...
+            let selected = this._selectableGroup.selected()
+
+            selected.el.closest('ui-tab-group').showPanel(selected.value)
+        })).observe(this, { childList: true })
     }
 
     initializeTabs() {
         this.walker().each(el => {
+            if (el._initialized) return
+
             if (el._disableable) return
+            if (el.hasAttribute('action')) return
 
             initializeTab(el)
+
+            el._initialized = true
         })
     }
 
@@ -166,6 +184,8 @@ function initializeTab(el) {
 }
 
 function initializePanel(el) {
+    if (el._initialized) return
+
     assignId(el, 'tab-panel')
 
     setAttribute(el, 'role', 'tabpanel')
@@ -180,6 +200,8 @@ function initializePanel(el) {
         removeAttribute(el, 'data-selected')
         setAttribute(el, 'tabindex', '-1')
     }
+
+    el._initialized = true
 }
 
 inject(({ css }) => css`ui-tab-group, ui-tabs { display: block; cursor: default; }`)

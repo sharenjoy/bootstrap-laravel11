@@ -23,6 +23,11 @@ $classes = Flux::classes()
         '[&>*:not(:first-child):not(:last-child):not(:only-child)>[data-flux-group-target]]:rounded-none',
         '[&>*:first-child:not(:last-child)>[data-flux-group-target]]:rounded-r-none',
         '[&>*:last-child:not(:first-child)>[data-flux-group-target]]:rounded-l-none',
+
+        // "Weld" borders for sub-sub-children of group targets (input element inside div inside ui-select element (combobox))...
+        '[&>*:not(:first-child):not(:last-child):not(:only-child)>[data-flux-input]>[data-flux-group-target]]:rounded-none',
+        '[&>*:first-child:not(:last-child)>[data-flux-input]>[data-flux-group-target]]:rounded-r-none',
+        '[&>*:last-child:not(:first-child)>[data-flux-input]>[data-flux-group-target]]:rounded-l-none',
     ])
     ;
 @endphp

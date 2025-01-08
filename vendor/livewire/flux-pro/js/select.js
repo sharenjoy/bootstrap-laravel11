@@ -1,4 +1,4 @@
-import { assignId, detangle, element, inject, on, removeAttribute, setAttribute } from './utils.js'
+import { assignId, detangle, element, inject, lockScroll, on, removeAttribute, search, setAttribute } from './utils.js'
 import { ActivatableGroup } from './mixins/activatable.js'
 import { SelectableGroup } from './mixins/selectable.js'
 import { FilterableGroup } from './mixins/filterable.js'
@@ -7,6 +7,7 @@ import { Popoverable } from './mixins/popoverable.js'
 import { Disableable } from './mixins/disableable.js'
 import { Anchorable } from './mixins/anchorable.js'
 import { UIControl, UIElement } from './element.js'
+import { UISelected } from './selected.js'
 
 export class UISelect extends UIControl {
     boot() {
@@ -36,9 +37,7 @@ export class UISelect extends UIControl {
 
         let input = this.input()
         let button = this.button()
-        let trigger = this.trigger()
         let list = this.list()
-        let overlay = this.overlay()
         let multiple = this.hasAttribute('multiple')
         let autocomplete = this.hasAttribute('autocomplete')
         let strictAutocomplete = this.hasAttribute('autocomplete') && this.getAttribute('autocomplete').trim().split(' ').includes('strict')
@@ -75,13 +74,22 @@ export class UISelect extends UIControl {
             })
         }
 
+        let popoverEl = this.querySelector('[popover]:not(ui-tooltip > [popover])')
+        let popoverInputEl = popoverEl?.querySelector('input')
+
+        let inputEl = this.querySelector('input')
+        inputEl = popoverEl?.contains(inputEl) ? null : inputEl
+
+        let buttonEl = this.querySelector('button')
+        buttonEl = popoverEl?.contains(buttonEl) ? null : buttonEl
+
         // Handle the different select shapes...
-        if (! this.querySelector('[popover], input')) { // static listbox...
+        if (! (popoverEl || inputEl)) { // static listbox...
             handleKeyboardNavigation(this, this._activatable)
             handleKeyboardSelection(this, this, this._activatable)
             handleActivationOnFocus(this, this._activatable, this._selectable)
-        } else if (! this.querySelector('[popover]') && this.querySelector('input')) { // static listbox with input control
-            let input = this.querySelector('input')
+        } else if (! popoverEl && inputEl) { // static listbox with input control
+            let input = inputEl
 
             this._disableable.onInitAndChange((disabled) => {
                 if (disabled) {
@@ -101,13 +109,13 @@ export class UISelect extends UIControl {
             handleKeyboardNavigation(input, this._activatable)
             handleKeyboardSelection(this, input, this._activatable)
             handleMouseSelection(this, this._activatable)
-        } else if (this.querySelector('[popover]') && this.querySelector('input:not([popover] input)')) { // popover listbox with input control
-            let input = this.querySelector('input:not([popover] input)')
+        } else if (popoverEl && inputEl) { // popover listbox with input control
+            let input = inputEl
 
             setAttribute(input, 'role', 'combobox')
             setAttribute(input, 'aria-controls', listId)
 
-            let popover = this.querySelector('[popover]')
+            let popover = popoverEl
 
             this._popoverable = new Popoverable(popover)
 
@@ -130,7 +138,9 @@ export class UISelect extends UIControl {
             })
 
             // Register trigger buttons...
-            this.querySelectorAll('button:not([popover] button)').forEach(button => {
+            this.querySelectorAll('button').forEach(button => {
+                if (popover.contains(button)) return
+
                 setAttribute(button, 'tabindex', '-1')
                 setAttribute(button, 'aria-controls', listId)
                 setAttribute(button, 'aria-haspopup', 'listbox')
@@ -143,6 +153,7 @@ export class UISelect extends UIControl {
 
             handleInputClearing(this, input, this._selectable, this._popoverable)
             initPopover(this, input, popover, this._popoverable, this._anchorable)
+            preventScrollWhenPopoverIsOpen(this, this._popoverable)
             linkExpandedStateToPopover(input, this._popoverable)
             preventInputEventsFromBubblingToSelectRoot(input)
             highlightInputContentsWhenFocused(input)
@@ -155,18 +166,12 @@ export class UISelect extends UIControl {
             handleKeyboardSelection(this, input, this._activatable)
             handleMouseSelection(this, this._activatable)
             controlActivationWithPopover(this._popoverable, this._activatable, this._selectable)
-            multiple || closePopoverOnAction(this, this._popoverable)
-        } else if (this.querySelector('[popover]') && this.querySelector('[popover] input')) { // popover listbox with button control and popover input control
-            let button
+            handlePopoverClosing(this, this._selectable, this._popoverable, multiple)
+        } else if (popoverEl && popoverInputEl) { // popover listbox with button control and popover input control
+            let button = buttonEl
 
-            if (CSS.supports('selector(&)')) { // Old safari doesn't support "&" which fixes a few select bugs...
-                button = this.querySelector('button:not(& [popover] button)')
-            } else {
-                button = this.querySelector('button:not([popover] button)')
-            }
-
-            let input = this.querySelector('[popover] input')
-            let popover = this.querySelector('[popover]')
+            let input = popoverInputEl
+            let popover = popoverEl
 
             setAttribute(button, 'role', 'combobox')
             setAttribute(input, 'role', 'combobox')
@@ -194,20 +199,22 @@ export class UISelect extends UIControl {
             preventInputEventsFromBubblingToSelectRoot(input)
             highlightInputContentsWhenFocused(input)
             this._filterable && filterResultsByInput(input, this._filterable)
-            focusInputWhenPopoverOpens(button, input, this._popoverable)
+            focusInputWhenPopoverOpens(input, this._popoverable)
             initPopover(this, button, popover, this._popoverable, this._anchorable)
+            preventScrollWhenPopoverIsOpen(this, this._popoverable)
             linkExpandedStateToPopover(button, this._popoverable)
             handleInputClearing(this, input, this._selectable, this._popoverable)
             controlPopoverWithKeyboard(button, this._popoverable, this._activatable, this._selectable)
             togglePopoverWithMouse(button, this._popoverable)
             handleKeyboardNavigation(input, this._activatable)
+            handleKeyboardSearchNavigation(button, this._activatable, this._popoverable)
             handleKeyboardSelection(this, input, this._activatable)
             handleMouseSelection(this, this._activatable)
             controlActivationWithPopover(this._popoverable, this._activatable, this._selectable)
-            multiple || closePopoverOnAction(this, this._popoverable)
-        } else if (this.querySelector('[popover]')) { // popover listbox with button control
-            let button = this.querySelector('button:not([popover] button)')
-            let popover = this.querySelector('[popover]')
+            handlePopoverClosing(this, this._selectable, this._popoverable, multiple)
+        } else if (popoverEl) { // popover listbox with button control
+            let button = buttonEl
+            let popover = popoverEl
 
             setAttribute(button, 'role', 'combobox')
             setAttribute(button, 'aria-controls', listId)
@@ -232,18 +239,19 @@ export class UISelect extends UIControl {
             })
 
             initPopover(this, button, popover, this._popoverable, this._anchorable)
-
+            preventScrollWhenPopoverIsOpen(this, this._popoverable)
             linkExpandedStateToPopover(button, this._popoverable)
             controlPopoverWithKeyboard(button, this._popoverable, this._activatable, this._selectable)
             togglePopoverWithMouse(button, this._popoverable)
             handleKeyboardNavigation(button, this._activatable)
+            handleKeyboardSearchNavigation(button, this._activatable, this._popoverable)
             handleKeyboardSelection(this, button, this._activatable)
             handleMouseSelection(this, this._activatable)
             controlActivationWithPopover(this._popoverable, this._activatable, this._selectable)
-            multiple || closePopoverOnAction(this, this._popoverable)
+            handlePopoverClosing(this, this._selectable, this._popoverable, multiple)
         }
 
-        let observer = new MutationObserver(mutations => {
+        let observer = new MutationObserver(() => {
             setTimeout(() => {
                 if ((! this._popoverable) || (this._popoverable.getState())) {
                     let firstSelectedOption = this._selectable.selecteds()[0]?.el
@@ -256,6 +264,7 @@ export class UISelect extends UIControl {
                 }
             })
         })
+
         observer.observe(list, { childList: true })
     }
 
@@ -264,21 +273,12 @@ export class UISelect extends UIControl {
         return this.querySelector('button:has(+ [popover])')
     }
 
-    trigger() {
-        // @todo: fix this:
-        return this.querySelector('input, button')
-    }
-
     input() {
         return this.querySelector('input')
     }
 
     list() {
         return this.querySelector('ui-options') || this
-    }
-
-    overlay() {
-        return this.querySelector('[popover]')
     }
 
     clear() {
@@ -294,6 +294,22 @@ export class UISelect extends UIControl {
 
     close() {
         this._popoverable.setState(false)
+    }
+
+    deselectLast() {
+        if ((! this.hasAttribute('multiple')) && this.value !== null) {
+            this.value = null;
+
+            this.dispatchEvent(new Event('input', { bubbles: false }))
+            this.dispatchEvent(new Event('change', { bubbles: false }))
+        }
+
+        if (this.hasAttribute('multiple') && this.value.length !== 0) {
+            this.value = this.value.slice(0, -1)
+
+            this.dispatchEvent(new Event('input', { bubbles: false }))
+            this.dispatchEvent(new Event('change', { bubbles: false }))
+        }
     }
 }
 
@@ -348,232 +364,13 @@ class UIEmpty extends UIElement {
     }
 }
 
-class UISelected extends UIElement {
-    boot() {
-        this.placeholderHTML = this.innerHTML
-
-        this.valuesAppended = new Map()
-
-        this.selectedElementGraveyard = new Map()
-    }
-
-    picker() {
-        return this.closest('ui-select')
-    }
-
-    mount() {
-        // Wrap in queueMicrotask to allow all ui-options to be mounted...
-        queueMicrotask(()=> {
-            this.picker()._selectable.onInitAndChange(() => {
-                this.displaySelectedValue()
-            })
-
-            let optionsEl = this.picker()?.list()
-
-            if (optionsEl) {
-                new MutationObserver(mutations => {
-                    // Wrap in queueMicrotask to allow newly added options to be mounted...
-                    queueMicrotask(() => {
-                        this.displaySelectedValue()
-                    })
-                }).observe(optionsEl, { childList: true })
-            }
-        })
-    }
-
-    displaySelectedValue() {
-        let value = this.picker().value
-
-        if (Array.isArray(value)) {
-            let values = value
-
-            if (this.valuesAppended.size === 0) {
-                this.clearPlaceholder()
-            }
-
-            let selecteds = this.picker()._selectable.selecteds()
-
-            values.forEach(value => {
-                // If the value is already in the list, we don't need to append it...
-                if (this.valuesAppended.has(value)) return;
-
-                let selected = selecteds.find(i => i.value === value) || this.selectedElementGraveyard.get(value)
-
-                // If we can find a selected option for the value, clone and append it...
-                if (selected) {
-                    let el = document.createElement('ui-selected-option')
-                    el.innerHTML = selected.el.innerHTML
-                    el.style.display = 'block'
-
-                    this.valuesAppended.set(value, el)
-
-                    this.appendChild(el)
-
-                    this.selectedElementGraveyard.set(value, selected)
-                } else {
-                    // Otherwise, we just wont add anything to the dom...
-                }
-            })
-
-            let existingValues = this.valuesAppended.keys()
-            let valuesForRemoval = existingValues.filter(i => ! values.includes(i))
-
-            valuesForRemoval.forEach(i => {
-                this.valuesAppended.get(i).remove()
-                this.valuesAppended.delete(i)
-                this.selectedElementGraveyard.delete(i)
-            })
-
-            if (this.valuesAppended.size === 0) {
-                this.putBackPlaceholder()
-                this.selectedElementGraveyard.clear()
-            }
-        } else {
-            let selected = this.picker()._selectable.findByValue(value) || this.selectedElementGraveyard.get(value)
-
-            this.selectedElementGraveyard.clear()
-
-            if (selected) {
-                let el = document.createElement('ui-selected-option')
-
-                el.innerHTML = selected.el.innerHTML
-
-                this.innerHTML = el.outerHTML
-
-                this.selectedElementGraveyard.set(value, selected)
-            } else {
-                this.putBackPlaceholder()
-            }
-        }
-    }
-
-    clearPlaceholder() {
-        this.innerHTML = ''
-    }
-
-    putBackPlaceholder() {
-        this.innerHTML = this.placeholderHTML
-    }
-
-    showOverflow() {
-        this.querySelector('ui-selected-overflow').style.display = 'block'
-    }
-
-    hideOverflow() {
-        this.querySelector('ui-selected-overflow').style.display = 'block'
-    }
-}
-
-class UISelectedOption extends UIElement {
-    //
-}
-
-class UISelectedCount extends UIElement {
-    mount() {
-        let picker = this.closest('ui-select')
-
-        if (! picker.hasAttribute('multiple')) return
-
-        this.textContent = picker.value.length
-
-        picker._selectable.onChange(() => {
-            this.textContent = picker.value.length
-        })
-    }
-}
-
-class UISelectedSingular extends UIElement {
-    mount() {
-        let picker = this.closest('ui-select')
-
-        if (! picker.hasAttribute('multiple')) return
-
-        let count = picker.value.length
-
-        if (count === 1) {
-            this.removeAttribute('data-hidden')
-        } else {
-            this.setAttribute('data-hidden', '')
-        }
-
-        picker._selectable.onChange(() => {
-            let count = picker.value.length
-
-            if (count === 1) {
-                this.removeAttribute('data-hidden')
-            } else {
-                this.setAttribute('data-hidden', '')
-            }
-        })
-    }
-}
-
-class UISelectedPlural extends UIElement {
-    mount() {
-        let picker = this.closest('ui-select')
-
-        if (! picker.hasAttribute('multiple')) return
-
-        let count = picker.value.length
-
-        if (count > 1) {
-            this.removeAttribute('data-hidden')
-        } else {
-            this.setAttribute('data-hidden', '')
-        }
-
-        picker._selectable.onChange(() => {
-            let count = picker.value.length
-
-            if (count > 1) {
-                this.removeAttribute('data-hidden')
-            } else {
-                this.setAttribute('data-hidden', '')
-            }
-        })
-    }
-}
-
-class UISelectedEmpty extends UIElement {
-    mount() {
-        let picker = this.closest('ui-select')
-
-        let show = () => this.removeAttribute('data-hidden')
-        let hide = () => this.setAttribute('data-hidden', '')
-
-        if (picker.hasAttribute('multiple')) {
-            if (picker.value.length === 0) { show() } else { hide() }
-            picker._selectable.onChange(() => {
-                if (picker.value.length === 0) { show() } else { hide() }
-            })
-        } else {
-            if (picker.value === null) { show() } else { hide() }
-            picker._selectable.onChange(() => {
-                if (picker.value === null) { show() } else { hide() }
-            })
-        }
-    }
-}
-
+element('selected', UISelected)
 element('select', UISelect)
 element('empty', UIEmpty)
-element('selected', UISelected)
-element('selected-count', UISelectedCount)
-element('selected-singular', UISelectedSingular)
-element('selected-plural', UISelectedPlural)
-element('selected-option', UISelectedOption)
-element('selected-empty', UISelectedEmpty)
 
 inject(({ css }) => css`ui-select { display: block; }`)
 inject(({ css }) => css`ui-selected-option { display: contents; }`)
 inject(({ css }) => css`ui-empty { display: block; cursor: default; }`)
-// element('trigger', UITrigger)
-
-function getEffectiveValueFromOption(el) {
-    if (el.hasAttribute('value')) return el.getAttribute('value')
-
-    return el.textContent.trim()
-}
 
 function handleKeyboardNavigation(el, activatable) {
     on(el, 'keydown', e => {
@@ -589,6 +386,18 @@ function handleKeyboardNavigation(el, activatable) {
     })
 }
 
+function handleKeyboardSearchNavigation(el, activatable, popoverable) {
+    search(el, query => {
+        activatable.activateBySearch(query)
+
+        // If the popover is closed, we want to mimic native select behavior,
+        // by changing the selection when a user types on the button trigger...
+        if (! popoverable.getState()) {
+            activatable.getActive()?.click()
+        }
+    })
+}
+
 function handleKeyboardSelection(root, el, activatable) {
     on(el, 'keydown', e => {
         if (e.key === 'Enter') {
@@ -597,8 +406,6 @@ function handleKeyboardSelection(root, el, activatable) {
             e.preventDefault(); e.stopPropagation()
 
             if (! activeEl) return
-
-            activeEl._selectable?.trigger()
 
             // Forward click events so people can use things like x-on:click in command palettes and such...
             activeEl.click()
@@ -704,7 +511,7 @@ function controlActivationWithPopover(popoverable, activatable, selectable) {
     })
 }
 
-function controlPopoverWithKeyboard(button, popoverable, activatable, selectable) {
+function controlPopoverWithKeyboard(button, popoverable) {
     on(button, 'keydown', e => {
         if (! ['ArrowDown', 'ArrowUp', 'Escape'].includes(e.key)) return;
 
@@ -726,12 +533,6 @@ function controlPopoverWithKeyboard(button, popoverable, activatable, selectable
     })
 }
 
-function closePopoverOnAction(root, popoverable) {
-    on(root, 'action', () => {
-        popoverable.setState(false)
-    })
-}
-
 function openPopoverWithMouse(el, popoverable) {
     on(el, 'click', () => {
         if (! popoverable.getState()) {
@@ -748,7 +549,7 @@ function togglePopoverWithMouse(button, popoverable) {
     })
 }
 
-function focusInputWhenPopoverOpens(button, input, popoverable) {
+function focusInputWhenPopoverOpens(input, popoverable) {
     popoverable.onChange(() => {
         if (popoverable.getState()) {
             setTimeout(() => input.focus())
@@ -795,13 +596,21 @@ function handleInputClearing(root, input, selectable, popoverable) {
     let clearOnClose = clear === '' || clear.split(' ').includes('close')
     let clearOnEsc = clear === '' || clear.split(' ').includes('esc')
 
+    if (clear === 'none') clearOnAction = clearOnSelect = clearOnClose = clearOnEsc = false
+
     if (clearOnAction) {
         root.addEventListener('action', e => {
             setInputValue('')
         })
     } else if (clearOnSelect) {
         selectable.onChange(() => {
-            setInputValue('')
+            // This microtask is here so that if the input has x-model on it
+            // Without this microtask, if the input has x-model on it, the x-model
+            // dependancy will become part of the x-model effects for the entire ui-select.
+            // Next time the dependancy changes, it will trigger a ui-select "change" event,
+            // which will clear the input, causing a loop of clearing the input value every
+            // time the input is typed into...
+            queueMicrotask(() => setInputValue(''))
         })
     }
 
@@ -818,6 +627,30 @@ function handleInputClearing(root, input, selectable, popoverable) {
             if (e.key === 'Escape') {
                 setInputValue('')
             }
+        })
+    }
+}
+
+function handlePopoverClosing(root, selectable, popoverable, multiple) {
+    let closeOnAction = ! multiple
+    let closeOnSelect = ! multiple
+
+    if (root.hasAttribute('close')) {
+        let close = root.getAttribute('close')
+
+        closeOnAction = close === '' || close.split(' ').includes('action')
+        closeOnSelect = close.split(' ').includes('select')
+
+        if (close === 'none') closeOnAction = closeOnSelect = false
+    }
+
+    if (closeOnAction) {
+        root.addEventListener('action', e => {
+            popoverable.setState(false)
+        })
+    } else if (closeOnSelect) {
+        selectable.onChange(() => {
+            popoverable.setState(false)
         })
     }
 }
@@ -863,4 +696,12 @@ function handleAutocomplete(autocomplete, isStrict, root, input, selectable, pop
             }
         })
     }
+}
+
+function preventScrollWhenPopoverIsOpen(root, popoverable) {
+    let { lock, unlock } = lockScroll()
+
+    popoverable.onChange(() => {
+        popoverable.getState() ? lock() : unlock()
+    })
 }

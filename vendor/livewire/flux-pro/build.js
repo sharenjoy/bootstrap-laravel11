@@ -17,7 +17,15 @@ await esbuild.build({
   outfile: 'dist/flux.module.js',
 })
 
+await esbuild.build({
+  entryPoints: ['js/editor.js'],
+  bundle: true,
+  format: 'esm',
+  outfile: 'dist/editor.module.js',
+})
+
 outputSize('dist/flux.module.js')
+outputSize('dist/editor.module.js')
 
 /**
  * CDN...
@@ -28,7 +36,14 @@ await esbuild.build({
   outfile: 'dist/flux.js',
 })
 
+await esbuild.build({
+  entryPoints: ['js/editor.js'],
+  bundle: true,
+  outfile: 'dist/editor.js',
+})
+
 outputSize('dist/flux.js')
+outputSize('dist/editor.js')
 
 /**
  * Minified CDN...
@@ -41,6 +56,13 @@ await esbuild.build({
 })
 
 await esbuild.build({
+  entryPoints: ['js/editor.js'],
+  bundle: true,
+  minify: true,
+  outfile: 'dist/editor.min.js',
+})
+
+await esbuild.build({
   entryPoints: ['js/index-lite.js'],
   bundle: true,
   minify: true,
@@ -48,6 +70,7 @@ await esbuild.build({
 })
 
 outputSize('dist/flux.min.js')
+outputSize('dist/editor.min.js')
 
 /**
  * Manifest...
@@ -55,7 +78,19 @@ outputSize('dist/flux.min.js')
 // Read the content of the generated file
 let content = fs.readFileSync(path.join(__dirname, 'dist', 'flux.module.js'))
 let hash = crypto.createHash('md5').update(content).digest('hex').slice(0, 8)
-let manifest = { "/flux.js": hash }
+let manifest = { '/flux.js': hash }
+
+content = fs.readFileSync(path.join(__dirname, 'dist', 'flux.css'))
+hash = crypto.createHash('md5').update(content).digest('hex').slice(0, 8)
+manifest['/flux.css'] = hash
+
+content = fs.readFileSync(path.join(__dirname, 'dist', 'editor.module.js'))
+hash = crypto.createHash('md5').update(content).digest('hex').slice(0, 8)
+manifest['/editor.js'] = hash
+
+content = fs.readFileSync(path.join(__dirname, 'dist', 'editor.css'))
+hash = crypto.createHash('md5').update(content).digest('hex').slice(0, 8)
+manifest['/editor.css'] = hash
 
 // Write the manifest file
 fs.writeFileSync(
@@ -65,7 +100,11 @@ fs.writeFileSync(
 
 content = fs.readFileSync(path.join(__dirname, '../flux/dist', 'flux-lite.min.js'))
 hash = crypto.createHash('md5').update(content).digest('hex').slice(0, 8)
-manifest = { "/flux.js": hash }
+manifest = { '/flux.js': hash }
+
+content = fs.readFileSync(path.join(__dirname, '../flux/dist', 'flux-lite.css'))
+hash = crypto.createHash('md5').update(content).digest('hex').slice(0, 8)
+manifest['/flux.css'] = hash
 
 fs.writeFileSync(
   path.join(__dirname, '../flux/dist', 'manifest.json'),

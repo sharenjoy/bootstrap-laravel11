@@ -1496,11 +1496,17 @@ function isUsingTouch() {
   return using === "touch";
 }
 function search(el, callback) {
+  let runningQuery = "";
+  let clearRunningQuery = debounce(() => {
+    runningQuery = "";
+  }, 300);
   el.addEventListener("keydown", (e) => {
     if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
-      callback(e.key);
+      runningQuery += e.key;
+      callback(runningQuery);
       e.stopPropagation();
     }
+    clearRunningQuery();
   });
 }
 function dispenseId(el, prefix) {
@@ -1522,7 +1528,7 @@ function detangle() {
     blocked = false;
   };
 }
-function interest(trigger, panel, { gain, lose, focusable, safeArea }) {
+function interest(trigger, panel, { gain, lose, focusable, useSafeArea }) {
   let engaged = false;
   focusable && document.addEventListener("focusin", (e) => {
     if (!isUsingKeyboard()) return;
@@ -1555,14 +1561,14 @@ function interest(trigger, panel, { gain, lose, focusable, safeArea }) {
     engaged = true;
     gain();
     setTimeout(() => {
-      let { safeArea: safeArea2, redraw: redrawSafeArea, remove } = createSafeArea(trigger, panel, e.clientX, e.clientY);
+      let { safeArea, redraw: redrawSafeArea, remove } = useSafeArea ? createSafeArea(trigger, panel, e.clientX, e.clientY) : nullSafeArea();
       removeSafeArea = remove;
       let pointerStoppedOverSafeAreaTimeout;
       let pointerMoveHandler = throttle((e2) => {
         let panelRect = panel.getBoundingClientRect();
         let triggerRect = trigger.getBoundingClientRect();
         let mouseState;
-        if (safeArea2.contains(e2.target) && mouseIsExclusivelyInsideSafeArea(triggerRect, panelRect, e2.clientX, e2.clientY)) mouseState = "safeArea";
+        if (safeArea.contains(e2.target) && mouseIsExclusivelyInsideSafeArea(triggerRect, panelRect, e2.clientX, e2.clientY)) mouseState = "safeArea";
         else if (panel.contains(e2.target)) mouseState = "panel";
         else if (trigger.contains(e2.target)) mouseState = "trigger";
         else mouseState = "outside";
@@ -1692,6 +1698,10 @@ function setAttribute2(el, name, value) {
     el.setAttribute(name, value);
   });
 }
+function removeAndReleaseAttribute(el, name) {
+  removeAttribute(el, name);
+  releaseAttribute(el, name);
+}
 function removeAttribute(el, name) {
   if (el._durableAttributeObserver === void 0) {
     el._durableAttributeObserver = attributeObserver(el, [name]);
@@ -1702,6 +1712,10 @@ function removeAttribute(el, name) {
   el._durableAttributeObserver.pause(() => {
     el.removeAttribute(name);
   });
+}
+function releaseAttribute(el, name) {
+  if (!el?._durableAttributeObserver?.hasAttribute(name)) return;
+  el._durableAttributeObserver.releaseAttribute(name);
 }
 function attributeObserver(el, initialAttributes) {
   let processMutations = (mutations) => {
@@ -1724,11 +1738,69 @@ function attributeObserver(el, initialAttributes) {
       this.attributes.includes(name) || this.attributes.push(name);
       observer.observe(el, { attributeFilter: this.attributes, attributeOldValue: true });
     },
+    releaseAttribute(name) {
+      if (!this.hasAttribute(name)) return;
+      observer.observe(el, { attributeFilter: this.attributes, attributeOldValue: true });
+    },
     pause(callback) {
       processMutations(observer.takeRecords());
       observer.disconnect();
       callback();
       observer.observe(el, { attributeFilter: this.attributes, attributeOldValue: true });
+    }
+  };
+}
+function nullSafeArea() {
+  return {
+    safeArea: { contains: () => false },
+    redraw: () => {
+    },
+    remove: () => {
+    }
+  };
+}
+function debounce(callback, delay) {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      callback(...args);
+    }, delay);
+  };
+}
+var lockCount = 0;
+function lockScroll(allowScroll = false) {
+  if (allowScroll) return { lock: () => {
+  }, unlock: () => {
+  } };
+  let undoLockStyles = () => {
+  };
+  return {
+    lock() {
+      lockCount++;
+      if (lockCount > 1) return;
+      undoLockStyles = chain(
+        setStyle(document.documentElement, "paddingRight", `${window.innerWidth - document.documentElement.clientWidth}px`),
+        setStyle(document.documentElement, "overflow", "hidden")
+      );
+    },
+    unlock() {
+      lockCount = Math.max(0, lockCount - 1);
+      undoLockStyles();
+    }
+  };
+}
+function setStyle(element2, style, value) {
+  let currentValue = element2.style[style];
+  element2.style[style] = value;
+  return () => {
+    element2.style[style] = currentValue;
+  };
+}
+function chain(...fns) {
+  return (...args) => {
+    for (let fn of fns) {
+      fn(...args);
     }
   };
 }
@@ -2067,7 +2139,13 @@ var SelectableGroup = class extends MixinGroup {
     return this.options().multiple ? this.state.has(value) : this.state === value;
   }
   setState(value) {
-    value = this.options().multiple ? (value || []).map((i) => i + "") : value + "";
+    if (value === null) value = this.multiple ? [] : "";
+    if (this.options().multiple) {
+      if (!Array.isArray(value)) value = [value];
+      value = value.map((i) => i + "");
+    } else {
+      value = value + "";
+    }
     this.state = this.options().multiple ? new Set(value) : value;
     let values = this.options().multiple ? value : [value];
     this.walker().each((el) => {
@@ -2351,10 +2429,10 @@ var UICheckboxGroup = class _UICheckboxGroup extends UIControl {
     let setCheckAllIndeterminate = () => {
       if (this._selectable.allAreSelected()) {
         checkAll.indeterminate = false;
-        checkAll.checked = true;
+        checkAll._selectable.select();
       } else if (this._selectable.noneAreSelected()) {
         checkAll.indeterminate = false;
-        checkAll.checked = false;
+        checkAll._selectable.deselect();
       } else {
         checkAll.indeterminate = true;
       }
@@ -2475,10 +2553,11 @@ function respondToLabelClick(el) {
 }
 
 // js/mixins/popoverable.js
-var currentlyOpenPopovers = /* @__PURE__ */ new Set();
+var currentlyOpenPopoversByScope = /* @__PURE__ */ new Map();
 var Popoverable = class extends Mixin {
   boot({ options }) {
-    options({ trigger: null });
+    options({ trigger: null, scope: null });
+    let scope = this.options().scope || "global";
     setAttribute2(this.el, "popover", "manual");
     this.trigger = this.options().trigger;
     this.onChanges = [];
@@ -2487,7 +2566,7 @@ var Popoverable = class extends Mixin {
       let oldState = this.state;
       this.state = e.newState === "open";
       if (this.state) {
-        closeOtherOpenPopovers(this.el, currentlyOpenPopovers);
+        closeOtherOpenPopovers(this.el, scope);
         let controller = new AbortController();
         let trigger = document.activeElement;
         setTimeout(() => {
@@ -2507,8 +2586,18 @@ var Popoverable = class extends Mixin {
       }
     });
     on(this.el, "toggle", (e) => {
-      if (e.newState === "open") currentlyOpenPopovers.add(this.el);
-      if (e.newState === "closed") currentlyOpenPopovers.delete(this.el);
+      if (e.newState === "open") {
+        if (!currentlyOpenPopoversByScope.has(scope)) {
+          currentlyOpenPopoversByScope.set(scope, /* @__PURE__ */ new Set());
+        }
+        currentlyOpenPopoversByScope.get(scope).add(this.el);
+      } else if (e.newState === "closed") {
+        if (!currentlyOpenPopoversByScope.has(scope)) return;
+        currentlyOpenPopoversByScope.get(scope).delete(this.el);
+        if (currentlyOpenPopoversByScope.get(scope).size === 0) {
+          currentlyOpenPopoversByScope.delete(scope);
+        }
+      }
     });
   }
   onChange(callback) {
@@ -2530,8 +2619,9 @@ var Popoverable = class extends Mixin {
     this.el.hidePopover();
   }
 };
-function closeOtherOpenPopovers(el, currentlyOpenPopovers2) {
-  currentlyOpenPopovers2.forEach((popoverEl) => {
+function closeOtherOpenPopovers(el, scope) {
+  if (!currentlyOpenPopoversByScope.has(scope)) return;
+  currentlyOpenPopoversByScope.get(scope).forEach((popoverEl) => {
     if (el.contains(popoverEl) || popoverEl.contains(el)) return;
     popoverEl.hidePopover();
   });
@@ -3923,14 +4013,7 @@ var Anchorable = class extends Mixin {
     };
     this.reposition = (...args) => {
       if (this.options().auto) {
-        cleanupAutoUpdate = autoUpdate(this.options().reference, this.el, reposition, {
-          ancestorScroll: true,
-          ancestorResize: true,
-          elementResize: true,
-          layoutShift: true,
-          animationFrame: true
-          // This may be too slow, but otherwise the anchoring is pretty janky...
-        });
+        cleanupAutoUpdate = autoUpdate(this.options().reference, this.el, reposition);
       } else {
         reposition(...args);
       }
@@ -4014,6 +4097,12 @@ var UIDropdown = class extends UIElement {
     overlay._popoverable.onChange(() => {
       overlay._popoverable.getState() ? overlay._anchorable.reposition() : overlay._anchorable.cleanup();
     });
+    if (["ui-menu", "ui-context"].includes(overlay.localName)) {
+      let { lock, unlock } = lockScroll();
+      overlay._popoverable.onChange(() => {
+        overlay._popoverable.getState() ? lock() : unlock();
+      });
+    }
     this._controllable.initial((initial) => overlay._popoverable.setState(initial));
     this._controllable.getter(() => overlay._popoverable.getState());
     let detangled = detangle();
@@ -4085,6 +4174,10 @@ var UIContext = class extends UIElement {
       gap: this.hasAttribute("gap") ? this.getAttribute("gap") : void 0,
       offset: this.hasAttribute("offset") ? this.getAttribute("offset") : void 0
     });
+    let { lock, unlock } = lockScroll();
+    this._popoverable.onChange(() => {
+      this._popoverable.getState() ? lock() : unlock();
+    });
     on(trigger, "contextmenu", (e) => {
       e.preventDefault();
       this._anchorable.reposition(e.pageX, e.pageY);
@@ -4129,6 +4222,10 @@ var ActivatableGroup = class extends MixinGroup {
   }
   activateFirst() {
     this.filterAwareWalker().first()?.use(Activatable).activate();
+  }
+  activateBySearch(query) {
+    let found = this.filterAwareWalker().find((i) => i.textContent.toLowerCase().trim().startsWith(query.toLowerCase()));
+    found?.use(Activatable).activate();
   }
   activateSelectedOrFirst(selectedEl) {
     let isHidden = (el) => el.matches("ui-option") ? getComputedStyle(el).display === "none" : false;
@@ -4265,10 +4362,11 @@ var FilterableGroup = class extends MixinGroup {
 var Filterable = class extends Mixin {
   groupedByType = FilterableGroup;
   boot({ options }) {
-    options({ mirror: null });
+    options({ mirror: null, keep: false });
     this.onChanges = [];
   }
   filter() {
+    if (this.options().keep) return;
     setAttribute2(this.el, "data-hidden", "");
     if (this.options().mirror) setAttribute2(this.options().mirror, "data-hidden", "");
   }
@@ -4412,7 +4510,10 @@ var UIOption = class extends UIElement {
     }
     let id = assignId(target, "option");
     setAttribute2(target, "role", "option");
-    this._filterable = new Filterable(target, { mirror: this });
+    this._filterable = new Filterable(target, {
+      mirror: this,
+      keep: !!this.closest("ui-empty") || this.getAttribute("filter") === "manual"
+    });
     if (this._disabled) return;
     this._activatable = new Activatable(target);
     if (!this.hasAttribute("action")) {
@@ -4453,55 +4554,222 @@ inject(({ css }) => css`ui-options:not([popover]), ui-option { display: block; c
 element("options", UIOptions);
 element("option", UIOption);
 
-// js/tooltip.js
-var UITooltip = class extends UIElement {
+// js/selected.js
+var UISelected = class extends UIElement {
   boot() {
-    let type = this.hasAttribute("label") ? "label" : "description";
-    let button = this.button();
-    let overlay = this.overlay();
-    if (!button) {
-      return console.warn("ui-tooltip: no trigger element found", this);
-    } else if (!overlay) {
-      return;
+    this.querySelectorAll("[data-appended]").forEach((el) => el.remove());
+    if (!this.querySelector("template")) {
+      let template = document.createElement("template");
+      template.setAttribute("name", "placeholder");
+      template.innerHTML = "<span>" + this.innerHTML + "</span>";
+      this.innerHTML = "";
+      this.appendChild(template);
     }
-    this._disabled = this.hasAttribute("disabled");
-    overlay._popoverable = new Popoverable(overlay);
-    overlay._anchorable = new Anchorable(overlay, {
-      reference: button,
-      position: this.hasAttribute("position") ? this.getAttribute("position") : void 0,
-      gap: this.hasAttribute("gap") ? this.getAttribute("gap") : void 0,
-      offset: this.hasAttribute("offset") ? this.getAttribute("offset") : void 0
-    });
-    overlay._popoverable.onChange(() => overlay._anchorable.reposition());
-    if (!this._disabled) {
-      interest(button, overlay, {
-        gain() {
-          overlay._popoverable.setState(true);
-        },
-        lose() {
-          overlay._popoverable.setState(false);
-        },
-        focusable: true
+    if (!this.querySelector('template[name="options"]')) {
+      let template = document.createElement("template");
+      template.setAttribute("name", "options");
+      template.innerHTML = "<div><slot></slot></div>";
+      this.appendChild(template);
+    }
+    if (!this.querySelector('template[name="option"]')) {
+      let template = document.createElement("template");
+      template.setAttribute("name", "option");
+      template.innerHTML = "<div><slot></slot></div>";
+      this.appendChild(template);
+    }
+    this.templates = {
+      placeholder: this.querySelector('template[name="placeholder"]'),
+      overflow: this.querySelector('template[name="overflow"]'),
+      options: this.querySelector('template[name="options"]'),
+      option: this.querySelector('template[name="option"]')
+    };
+    this.templates.options.elsByValue = /* @__PURE__ */ new Map();
+    this.max = this.templates.overflow?.getAttribute("max") ? this.templates.overflow.getAttribute("max") : Infinity;
+    this.selecteds = /* @__PURE__ */ new Map();
+    this.picker = this.closest("ui-select");
+    this.multiple = this.picker.hasAttribute("multiple");
+  }
+  mount() {
+    queueMicrotask(() => {
+      this.picker._selectable.onInitAndChange(() => {
+        this.render(true);
       });
-    }
-    let id = assignId(overlay, "tooltip");
-    setAttribute2(button, "aria-controls", id);
-    setAttribute2(button, "aria-expanded", "false");
-    overlay._popoverable.onChange(() => {
-      overlay._popoverable.getState() ? setAttribute2(button, "aria-expanded", "true") : setAttribute2(button, "aria-expanded", "false");
+      let optionsEl = this.picker.list();
+      if (optionsEl) {
+        new MutationObserver((mutations) => {
+          queueMicrotask(() => this.render());
+        }).observe(optionsEl, { childList: true });
+      }
     });
-    if (type === "label") setAttribute2(button, "aria-labelledby", id);
-    else setAttribute2(button, "aria-describedby", id);
-    setAttribute2(overlay, "role", "tooltip");
   }
-  button() {
-    return this.firstElementChild;
+  render(retry) {
+    if (!this.multiple) {
+      let value = this.picker.value;
+      if (Array.from(this.selecteds.keys()).includes(value)) {
+        return;
+      }
+      this.selecteds.clear();
+      let selected = this.picker._selectable.findByValue(value);
+      if (selected) {
+        this.selecteds.set(value, selected);
+      } else {
+        if (!["", null, void 0].includes(value)) {
+          if (retry) return setTimeout(() => {
+            console.log("retrying...");
+            this.render();
+          });
+          else throw `Could not find option for value "${value}"`;
+        }
+      }
+      this.templates.placeholder?.clearPlaceholder?.();
+      this.templates.option?.clearOption?.();
+      if (this.selecteds.size > 0) {
+        this.renderOption();
+      } else {
+        this.renderPlaceholder();
+      }
+    } else {
+      let values = this.picker.value;
+      let removedValues = Array.from(this.selecteds.keys()).filter((i) => !values.includes(i));
+      let newValues = values.filter((i) => !this.selecteds.has(i));
+      removedValues.forEach((value) => this.selecteds.delete(value));
+      let newSelecteds = /* @__PURE__ */ new Map();
+      for (let value of newValues) {
+        let selected = this.picker._selectable.findByValue(value);
+        if (!selected) {
+          if (retry) return setTimeout(() => this.render());
+          else throw `Could not find option for value "${value}"`;
+        }
+        newSelecteds.set(value, selected);
+      }
+      newSelecteds.forEach((selected, value) => this.selecteds.set(value, selected));
+      this.templates.placeholder?.clearPlaceholder?.();
+      this.templates.overflow?.clearOverflow?.();
+      this.templates.options?.clearOptions?.();
+      if (this.selecteds.size > 0) {
+        this.renderOptions({
+          hasOverflowed: (rendered) => {
+            if (this.max === "auto") {
+              let willOverflow = false;
+              this.renderOverflow(this.selecteds.size, this.selecteds.size - rendered);
+              if (this.clientWidth < this.scrollWidth) {
+                willOverflow = true;
+              }
+              this.templates.overflow?.clearOverflow?.();
+              if (willOverflow) {
+                return true;
+              }
+            }
+            return rendered > parseInt(this.max);
+          },
+          renderOverflow: (remainder) => {
+            if (this.templates?.overflow?.getAttribute("mode") !== "append") {
+              this.templates.options?.clearOptions?.();
+            }
+            this.renderOverflow(this.selecteds.size, remainder);
+          }
+        });
+      } else {
+        this.renderPlaceholder();
+      }
+    }
   }
-  overlay() {
-    return this.lastElementChild !== this.button() && this.lastElementChild;
+  renderOptions({ hasOverflowed, renderOverflow }) {
+    let container = document.createElement("div");
+    container.style.display = "contents";
+    let optionsEl = hydrateTemplate(this.templates.options, {
+      default: container
+    });
+    this.templates.options.after(optionsEl);
+    this.templates.options.clearOptions = () => {
+      optionsEl.remove();
+      this.templates.options.clearOptions = () => {
+      };
+    };
+    let rendered = 0;
+    let shouldRenderOverflow = false;
+    for (let [value, selected] of this.selecteds) {
+      let fragment2 = new DocumentFragment();
+      fragment2.append(...selected.el.cloneNode(true).childNodes);
+      let optionEl = hydrateTemplate(this.templates.option, {
+        text: selected.el.textContent.trim(),
+        default: fragment2,
+        value
+      });
+      optionEl.setAttribute("data-value", value);
+      optionEl.setAttribute("data-appended", "");
+      optionEl.deselect = () => selected.deselect();
+      container.appendChild(optionEl);
+      rendered++;
+      if (hasOverflowed(rendered)) {
+        shouldRenderOverflow = true;
+        container.removeChild(optionEl);
+        rendered--;
+        break;
+      }
+    }
+    let fragment = new DocumentFragment();
+    fragment.append(...container.childNodes);
+    container.replaceWith(fragment);
+    if (shouldRenderOverflow) {
+      renderOverflow(this.selecteds.size - rendered);
+    }
+  }
+  renderOption() {
+    for (let [value, selected] of this.selecteds) {
+      let fragment = new DocumentFragment();
+      fragment.append(...selected.el.cloneNode(true).childNodes);
+      let optionEl = hydrateTemplate(this.templates.option, {
+        text: selected.el.textContent.trim(),
+        default: fragment,
+        value
+      });
+      optionEl.setAttribute("data-value", value);
+      optionEl.setAttribute("data-appended", value);
+      optionEl.deselect = () => selected.deselect();
+      this.templates.option.after(optionEl);
+      this.templates.option.clearOption = () => {
+        optionEl.remove();
+        this.templates.option.clearOption = () => {
+        };
+      };
+    }
+  }
+  renderPlaceholder() {
+    if (!this.templates.placeholder) return;
+    let el = hydrateTemplate(this.templates.placeholder);
+    this.templates.placeholder.after(el);
+    this.templates.placeholder.clearPlaceholder = () => {
+      el.remove();
+      this.templates.placeholder.clearPlaceholder = () => {
+      };
+    };
+  }
+  renderOverflow(count, remainder) {
+    if (!this.templates.overflow) return;
+    let el = hydrateTemplate(this.templates.overflow, {
+      remainder,
+      count: this.selecteds.size
+    });
+    el.setAttribute("data-appended", "");
+    this.templates.overflow.after(el);
+    this.templates.overflow.clearOverflow = () => {
+      el.remove();
+      this.templates.placeholder.clearOverflow = () => {
+      };
+    };
   }
 };
-element("tooltip", UITooltip);
+function hydrateTemplate(template, slots = {}) {
+  let fragment = template.content.cloneNode(true);
+  Object.entries(slots).forEach(([key, value]) => {
+    let slotNodes = key === "default" ? fragment.querySelectorAll("slot:not([name])") : fragment.querySelectorAll(`slot[name="${key}"]`);
+    slotNodes.forEach((i) => i.replaceWith(
+      typeof value === "string" ? document.createTextNode(value) : value
+    ));
+  });
+  return fragment.firstElementChild;
+}
 
 // js/select.js
 var UISelect = class extends UIControl {
@@ -4526,9 +4794,7 @@ var UISelect = class extends UIControl {
     this._disableable = new Disableable(this);
     let input = this.input();
     let button = this.button();
-    let trigger = this.trigger();
     let list = this.list();
-    let overlay = this.overlay();
     let multiple = this.hasAttribute("multiple");
     let autocomplete = this.hasAttribute("autocomplete");
     let strictAutocomplete = this.hasAttribute("autocomplete") && this.getAttribute("autocomplete").trim().split(" ").includes("strict");
@@ -4554,12 +4820,18 @@ var UISelect = class extends UIControl {
         }
       });
     }
-    if (!this.querySelector("[popover], input")) {
+    let popoverEl = this.querySelector("[popover]:not(ui-tooltip > [popover])");
+    let popoverInputEl = popoverEl?.querySelector("input");
+    let inputEl = this.querySelector("input");
+    inputEl = popoverEl?.contains(inputEl) ? null : inputEl;
+    let buttonEl = this.querySelector("button");
+    buttonEl = popoverEl?.contains(buttonEl) ? null : buttonEl;
+    if (!(popoverEl || inputEl)) {
       handleKeyboardNavigation(this, this._activatable);
       handleKeyboardSelection(this, this, this._activatable);
       handleActivationOnFocus(this, this._activatable, this._selectable);
-    } else if (!this.querySelector("[popover]") && this.querySelector("input")) {
-      let input2 = this.querySelector("input");
+    } else if (!popoverEl && inputEl) {
+      let input2 = inputEl;
       this._disableable.onInitAndChange((disabled) => {
         if (disabled) {
           input2 && setAttribute2(input2, "disabled", "");
@@ -4577,11 +4849,11 @@ var UISelect = class extends UIControl {
       handleKeyboardNavigation(input2, this._activatable);
       handleKeyboardSelection(this, input2, this._activatable);
       handleMouseSelection(this, this._activatable);
-    } else if (this.querySelector("[popover]") && this.querySelector("input:not([popover] input)")) {
-      let input2 = this.querySelector("input:not([popover] input)");
+    } else if (popoverEl && inputEl) {
+      let input2 = inputEl;
       setAttribute2(input2, "role", "combobox");
       setAttribute2(input2, "aria-controls", listId);
-      let popover = this.querySelector("[popover]");
+      let popover = popoverEl;
       this._popoverable = new Popoverable(popover);
       this._anchorable = new Anchorable(popover, {
         reference: input2,
@@ -4598,7 +4870,8 @@ var UISelect = class extends UIControl {
           input2 && removeAttribute(input2, "disabled");
         }
       });
-      this.querySelectorAll("button:not([popover] button)").forEach((button2) => {
+      this.querySelectorAll("button").forEach((button2) => {
+        if (popover.contains(button2)) return;
         setAttribute2(button2, "tabindex", "-1");
         setAttribute2(button2, "aria-controls", listId);
         setAttribute2(button2, "aria-haspopup", "listbox");
@@ -4610,6 +4883,7 @@ var UISelect = class extends UIControl {
       });
       handleInputClearing(this, input2, this._selectable, this._popoverable);
       initPopover(this, input2, popover, this._popoverable, this._anchorable);
+      preventScrollWhenPopoverIsOpen(this, this._popoverable);
       linkExpandedStateToPopover(input2, this._popoverable);
       preventInputEventsFromBubblingToSelectRoot(input2);
       highlightInputContentsWhenFocused(input2);
@@ -4622,16 +4896,11 @@ var UISelect = class extends UIControl {
       handleKeyboardSelection(this, input2, this._activatable);
       handleMouseSelection(this, this._activatable);
       controlActivationWithPopover(this._popoverable, this._activatable, this._selectable);
-      multiple || closePopoverOnAction(this, this._popoverable);
-    } else if (this.querySelector("[popover]") && this.querySelector("[popover] input")) {
-      let button2;
-      if (CSS.supports("selector(&)")) {
-        button2 = this.querySelector("button:not(& [popover] button)");
-      } else {
-        button2 = this.querySelector("button:not([popover] button)");
-      }
-      let input2 = this.querySelector("[popover] input");
-      let popover = this.querySelector("[popover]");
+      handlePopoverClosing(this, this._selectable, this._popoverable, multiple);
+    } else if (popoverEl && popoverInputEl) {
+      let button2 = buttonEl;
+      let input2 = popoverInputEl;
+      let popover = popoverEl;
       setAttribute2(button2, "role", "combobox");
       setAttribute2(input2, "role", "combobox");
       setAttribute2(button2, "aria-controls", listId);
@@ -4655,20 +4924,22 @@ var UISelect = class extends UIControl {
       preventInputEventsFromBubblingToSelectRoot(input2);
       highlightInputContentsWhenFocused(input2);
       this._filterable && filterResultsByInput(input2, this._filterable);
-      focusInputWhenPopoverOpens(button2, input2, this._popoverable);
+      focusInputWhenPopoverOpens(input2, this._popoverable);
       initPopover(this, button2, popover, this._popoverable, this._anchorable);
+      preventScrollWhenPopoverIsOpen(this, this._popoverable);
       linkExpandedStateToPopover(button2, this._popoverable);
       handleInputClearing(this, input2, this._selectable, this._popoverable);
       controlPopoverWithKeyboard(button2, this._popoverable, this._activatable, this._selectable);
       togglePopoverWithMouse(button2, this._popoverable);
       handleKeyboardNavigation(input2, this._activatable);
+      handleKeyboardSearchNavigation(button2, this._activatable, this._popoverable);
       handleKeyboardSelection(this, input2, this._activatable);
       handleMouseSelection(this, this._activatable);
       controlActivationWithPopover(this._popoverable, this._activatable, this._selectable);
-      multiple || closePopoverOnAction(this, this._popoverable);
-    } else if (this.querySelector("[popover]")) {
-      let button2 = this.querySelector("button:not([popover] button)");
-      let popover = this.querySelector("[popover]");
+      handlePopoverClosing(this, this._selectable, this._popoverable, multiple);
+    } else if (popoverEl) {
+      let button2 = buttonEl;
+      let popover = popoverEl;
       setAttribute2(button2, "role", "combobox");
       setAttribute2(button2, "aria-controls", listId);
       this._disableable.onInitAndChange((disabled) => {
@@ -4689,16 +4960,18 @@ var UISelect = class extends UIControl {
         offset: this.hasAttribute("offset") ? this.getAttribute("offset") : void 0
       });
       initPopover(this, button2, popover, this._popoverable, this._anchorable);
+      preventScrollWhenPopoverIsOpen(this, this._popoverable);
       linkExpandedStateToPopover(button2, this._popoverable);
       controlPopoverWithKeyboard(button2, this._popoverable, this._activatable, this._selectable);
       togglePopoverWithMouse(button2, this._popoverable);
       handleKeyboardNavigation(button2, this._activatable);
+      handleKeyboardSearchNavigation(button2, this._activatable, this._popoverable);
       handleKeyboardSelection(this, button2, this._activatable);
       handleMouseSelection(this, this._activatable);
       controlActivationWithPopover(this._popoverable, this._activatable, this._selectable);
-      multiple || closePopoverOnAction(this, this._popoverable);
+      handlePopoverClosing(this, this._selectable, this._popoverable, multiple);
     }
-    let observer = new MutationObserver((mutations) => {
+    let observer = new MutationObserver(() => {
       setTimeout(() => {
         if (!this._popoverable || this._popoverable.getState()) {
           let firstSelectedOption = this._selectable.selecteds()[0]?.el;
@@ -4715,17 +4988,11 @@ var UISelect = class extends UIControl {
   button() {
     return this.querySelector("button:has(+ [popover])");
   }
-  trigger() {
-    return this.querySelector("input, button");
-  }
   input() {
     return this.querySelector("input");
   }
   list() {
     return this.querySelector("ui-options") || this;
-  }
-  overlay() {
-    return this.querySelector("[popover]");
   }
   clear() {
     if (!this.input()) return;
@@ -4737,6 +5004,18 @@ var UISelect = class extends UIControl {
   }
   close() {
     this._popoverable.setState(false);
+  }
+  deselectLast() {
+    if (!this.hasAttribute("multiple") && this.value !== null) {
+      this.value = null;
+      this.dispatchEvent(new Event("input", { bubbles: false }));
+      this.dispatchEvent(new Event("change", { bubbles: false }));
+    }
+    if (this.hasAttribute("multiple") && this.value.length !== 0) {
+      this.value = this.value.slice(0, -1);
+      this.dispatchEvent(new Event("input", { bubbles: false }));
+      this.dispatchEvent(new Event("change", { bubbles: false }));
+    }
   }
 };
 var UIEmpty = class extends UIElement {
@@ -4774,183 +5053,9 @@ var UIEmpty = class extends UIElement {
     });
   }
 };
-var UISelected = class extends UIElement {
-  boot() {
-    this.placeholderHTML = this.innerHTML;
-    this.valuesAppended = /* @__PURE__ */ new Map();
-    this.selectedElementGraveyard = /* @__PURE__ */ new Map();
-  }
-  picker() {
-    return this.closest("ui-select");
-  }
-  mount() {
-    queueMicrotask(() => {
-      this.picker()._selectable.onInitAndChange(() => {
-        this.displaySelectedValue();
-      });
-      let optionsEl = this.picker()?.list();
-      if (optionsEl) {
-        new MutationObserver((mutations) => {
-          queueMicrotask(() => {
-            this.displaySelectedValue();
-          });
-        }).observe(optionsEl, { childList: true });
-      }
-    });
-  }
-  displaySelectedValue() {
-    let value = this.picker().value;
-    if (Array.isArray(value)) {
-      let values = value;
-      if (this.valuesAppended.size === 0) {
-        this.clearPlaceholder();
-      }
-      let selecteds = this.picker()._selectable.selecteds();
-      values.forEach((value2) => {
-        if (this.valuesAppended.has(value2)) return;
-        let selected = selecteds.find((i) => i.value === value2) || this.selectedElementGraveyard.get(value2);
-        if (selected) {
-          let el = document.createElement("ui-selected-option");
-          el.innerHTML = selected.el.innerHTML;
-          el.style.display = "block";
-          this.valuesAppended.set(value2, el);
-          this.appendChild(el);
-          this.selectedElementGraveyard.set(value2, selected);
-        } else {
-        }
-      });
-      let existingValues = this.valuesAppended.keys();
-      let valuesForRemoval = existingValues.filter((i) => !values.includes(i));
-      valuesForRemoval.forEach((i) => {
-        this.valuesAppended.get(i).remove();
-        this.valuesAppended.delete(i);
-        this.selectedElementGraveyard.delete(i);
-      });
-      if (this.valuesAppended.size === 0) {
-        this.putBackPlaceholder();
-        this.selectedElementGraveyard.clear();
-      }
-    } else {
-      let selected = this.picker()._selectable.findByValue(value) || this.selectedElementGraveyard.get(value);
-      this.selectedElementGraveyard.clear();
-      if (selected) {
-        let el = document.createElement("ui-selected-option");
-        el.innerHTML = selected.el.innerHTML;
-        this.innerHTML = el.outerHTML;
-        this.selectedElementGraveyard.set(value, selected);
-      } else {
-        this.putBackPlaceholder();
-      }
-    }
-  }
-  clearPlaceholder() {
-    this.innerHTML = "";
-  }
-  putBackPlaceholder() {
-    this.innerHTML = this.placeholderHTML;
-  }
-  showOverflow() {
-    this.querySelector("ui-selected-overflow").style.display = "block";
-  }
-  hideOverflow() {
-    this.querySelector("ui-selected-overflow").style.display = "block";
-  }
-};
-var UISelectedOption = class extends UIElement {
-  //
-};
-var UISelectedCount = class extends UIElement {
-  mount() {
-    let picker = this.closest("ui-select");
-    if (!picker.hasAttribute("multiple")) return;
-    this.textContent = picker.value.length;
-    picker._selectable.onChange(() => {
-      this.textContent = picker.value.length;
-    });
-  }
-};
-var UISelectedSingular = class extends UIElement {
-  mount() {
-    let picker = this.closest("ui-select");
-    if (!picker.hasAttribute("multiple")) return;
-    let count = picker.value.length;
-    if (count === 1) {
-      this.removeAttribute("data-hidden");
-    } else {
-      this.setAttribute("data-hidden", "");
-    }
-    picker._selectable.onChange(() => {
-      let count2 = picker.value.length;
-      if (count2 === 1) {
-        this.removeAttribute("data-hidden");
-      } else {
-        this.setAttribute("data-hidden", "");
-      }
-    });
-  }
-};
-var UISelectedPlural = class extends UIElement {
-  mount() {
-    let picker = this.closest("ui-select");
-    if (!picker.hasAttribute("multiple")) return;
-    let count = picker.value.length;
-    if (count > 1) {
-      this.removeAttribute("data-hidden");
-    } else {
-      this.setAttribute("data-hidden", "");
-    }
-    picker._selectable.onChange(() => {
-      let count2 = picker.value.length;
-      if (count2 > 1) {
-        this.removeAttribute("data-hidden");
-      } else {
-        this.setAttribute("data-hidden", "");
-      }
-    });
-  }
-};
-var UISelectedEmpty = class extends UIElement {
-  mount() {
-    let picker = this.closest("ui-select");
-    let show = () => this.removeAttribute("data-hidden");
-    let hide2 = () => this.setAttribute("data-hidden", "");
-    if (picker.hasAttribute("multiple")) {
-      if (picker.value.length === 0) {
-        show();
-      } else {
-        hide2();
-      }
-      picker._selectable.onChange(() => {
-        if (picker.value.length === 0) {
-          show();
-        } else {
-          hide2();
-        }
-      });
-    } else {
-      if (picker.value === null) {
-        show();
-      } else {
-        hide2();
-      }
-      picker._selectable.onChange(() => {
-        if (picker.value === null) {
-          show();
-        } else {
-          hide2();
-        }
-      });
-    }
-  }
-};
+element("selected", UISelected);
 element("select", UISelect);
 element("empty", UIEmpty);
-element("selected", UISelected);
-element("selected-count", UISelectedCount);
-element("selected-singular", UISelectedSingular);
-element("selected-plural", UISelectedPlural);
-element("selected-option", UISelectedOption);
-element("selected-empty", UISelectedEmpty);
 inject(({ css }) => css`ui-select { display: block; }`);
 inject(({ css }) => css`ui-selected-option { display: contents; }`);
 inject(({ css }) => css`ui-empty { display: block; cursor: default; }`);
@@ -4968,6 +5073,14 @@ function handleKeyboardNavigation(el, activatable) {
     }
   });
 }
+function handleKeyboardSearchNavigation(el, activatable, popoverable) {
+  search(el, (query) => {
+    activatable.activateBySearch(query);
+    if (!popoverable.getState()) {
+      activatable.getActive()?.click();
+    }
+  });
+}
 function handleKeyboardSelection(root, el, activatable) {
   on(el, "keydown", (e) => {
     if (e.key === "Enter") {
@@ -4975,7 +5088,6 @@ function handleKeyboardSelection(root, el, activatable) {
       e.preventDefault();
       e.stopPropagation();
       if (!activeEl) return;
-      activeEl._selectable?.trigger();
       activeEl.click();
       root.dispatchEvent(new CustomEvent("action", {
         bubbles: false,
@@ -5059,7 +5171,7 @@ function controlActivationWithPopover(popoverable, activatable, selectable) {
     }
   });
 }
-function controlPopoverWithKeyboard(button, popoverable, activatable, selectable) {
+function controlPopoverWithKeyboard(button, popoverable) {
   on(button, "keydown", (e) => {
     if (!["ArrowDown", "ArrowUp", "Escape"].includes(e.key)) return;
     if (e.key === "ArrowDown") {
@@ -5081,11 +5193,6 @@ function controlPopoverWithKeyboard(button, popoverable, activatable, selectable
     }
   });
 }
-function closePopoverOnAction(root, popoverable) {
-  on(root, "action", () => {
-    popoverable.setState(false);
-  });
-}
 function openPopoverWithMouse(el, popoverable) {
   on(el, "click", () => {
     if (!popoverable.getState()) {
@@ -5100,7 +5207,7 @@ function togglePopoverWithMouse(button, popoverable) {
     button.focus();
   });
 }
-function focusInputWhenPopoverOpens(button, input, popoverable) {
+function focusInputWhenPopoverOpens(input, popoverable) {
   popoverable.onChange(() => {
     if (popoverable.getState()) {
       setTimeout(() => input.focus());
@@ -5138,13 +5245,14 @@ function handleInputClearing(root, input, selectable, popoverable) {
   let clearOnSelect = clear === "" || clear.split(" ").includes("select");
   let clearOnClose = clear === "" || clear.split(" ").includes("close");
   let clearOnEsc = clear === "" || clear.split(" ").includes("esc");
+  if (clear === "none") clearOnAction = clearOnSelect = clearOnClose = clearOnEsc = false;
   if (clearOnAction) {
     root.addEventListener("action", (e) => {
       setInputValue("");
     });
   } else if (clearOnSelect) {
     selectable.onChange(() => {
-      setInputValue("");
+      queueMicrotask(() => setInputValue(""));
     });
   }
   if (clearOnClose) {
@@ -5159,6 +5267,25 @@ function handleInputClearing(root, input, selectable, popoverable) {
       if (e.key === "Escape") {
         setInputValue("");
       }
+    });
+  }
+}
+function handlePopoverClosing(root, selectable, popoverable, multiple) {
+  let closeOnAction = !multiple;
+  let closeOnSelect = !multiple;
+  if (root.hasAttribute("close")) {
+    let close = root.getAttribute("close");
+    closeOnAction = close === "" || close.split(" ").includes("action");
+    closeOnSelect = close.split(" ").includes("select");
+    if (close === "none") closeOnAction = closeOnSelect = false;
+  }
+  if (closeOnAction) {
+    root.addEventListener("action", (e) => {
+      popoverable.setState(false);
+    });
+  } else if (closeOnSelect) {
+    selectable.onChange(() => {
+      popoverable.setState(false);
     });
   }
 }
@@ -5196,6 +5323,409 @@ function handleAutocomplete(autocomplete, isStrict, root, input, selectable, pop
     });
   }
 }
+function preventScrollWhenPopoverIsOpen(root, popoverable) {
+  let { lock, unlock } = lockScroll();
+  popoverable.onChange(() => {
+    popoverable.getState() ? lock() : unlock();
+  });
+}
+
+// js/menu.js
+var UIMenu = class _UIMenu extends UIElement {
+  boot() {
+    this._focusable = new FocusableGroup(this, { wrap: false, ensureTabbable: false });
+    on(this, "keydown", (e) => {
+      if (["ArrowDown"].includes(e.key)) {
+        e.target === this ? this._focusable.focusFirst() : this._focusable.focusNext();
+        e.preventDefault();
+        e.stopPropagation();
+      } else if (["ArrowUp"].includes(e.key)) {
+        e.target === this ? this._focusable.focusFirst() : this._focusable.focusPrev();
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+    search(this, (query) => this._focusable.focusBySearch(query));
+    if (this.hasAttribute("popover")) {
+      this.addEventListener("lofi-close-popovers", () => {
+        setTimeout(() => this.hidePopover(), 50);
+      });
+    }
+    if (this.parentElement.localName === "ui-dropdown") {
+      let dropdown = this.parentElement;
+      on(dropdown.trigger(), "keydown", (e) => {
+        if (e.key === "ArrowDown") {
+          this.fromArrowDown = true;
+          this.showPopover();
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      });
+    }
+    setAttribute2(this, "role", "menu");
+    setAttribute2(this, "tabindex", "-1");
+  }
+  mount() {
+    this.initializeMenuItems();
+    let observer = new MutationObserver((mutations) => {
+      this.initializeMenuItems();
+    });
+    observer.observe(this, { childList: true, subtree: true });
+  }
+  onPopoverShow() {
+    queueMicrotask(() => {
+      if (this.fromArrowDown) {
+        this._focusable.focusFirst();
+        this.fromArrowDown = false;
+      } else {
+        this.focus();
+      }
+    });
+  }
+  onPopoverHide() {
+    this._focusable.wipeTabbables();
+  }
+  initializeMenuItems() {
+    this.walker().each((el) => {
+      if (el._disableable) return;
+      initializeMenuItem(el);
+    });
+  }
+  walker() {
+    return walker(this, (el, { skip, reject }) => {
+      if (el instanceof _UIMenu) return reject();
+      if (el instanceof UISelect) return reject();
+      if (!["a", "button"].includes(el.localName)) return skip();
+    });
+  }
+};
+var UISubmenu = class extends UIElement {
+  boot() {
+  }
+};
+var UIMenuCheckbox = class extends UIElement {
+  boot() {
+    this._disabled = this.hasAttribute("disabled");
+    this._disableable = new Disableable(this);
+    let button = this;
+    if (this._disabled) {
+      setAttribute2(button, "disabled", "");
+      setAttribute2(button, "aria-disabled", "true");
+    }
+    assignId(button, "menu-checkbox");
+    setAttribute2(button, "role", "menuitemcheckbox");
+    if (this._disabled) return;
+    button._focusable = new Focusable(button, { disableable: this._disableable, hover: true, tabbableAttr: "data-active" });
+    button._selectable = new Selectable(button, {
+      toggleable: true,
+      value: this.hasAttribute("value") ? this.getAttribute("value") : button.textContent.trim(),
+      label: this.hasAttribute("label") ? this.getAttribute("label") : button.textContent.trim(),
+      dataAttr: "data-checked",
+      ariaAttr: "aria-checked",
+      selectedInitially: this.hasAttribute("checked")
+    });
+    this._controllable = new Controllable(this);
+    this._controllable.initial((initial) => initial && button._selectable.setState(initial));
+    this._controllable.getter(() => button._selectable.getState());
+    let detangled = detangle();
+    this._controllable.setter(detangled((value) => {
+      this._selectable.setState(value);
+    }));
+    this._selectable.onChange(detangled(() => {
+      this._controllable.dispatch();
+    }));
+    on(button, "click", () => {
+      this.dispatchEvent(new CustomEvent("lofi-close-popovers", { bubbles: true }));
+      button._selectable.press();
+    });
+    respondToKeyboardClick(button);
+  }
+};
+var UIMenuRadio = class extends UIElement {
+  boot() {
+    this._disabled = this.hasAttribute("disabled");
+    this._disableable = new Disableable(this);
+    let button = this;
+    if (this._disabled) {
+      setAttribute2(button, "disabled", "");
+      setAttribute2(button, "aria-disabled", "true");
+    }
+    assignId(button, "menu-radio");
+    setAttribute2(button, "role", "menuitemradio");
+    if (this._disabled) return;
+    button._focusable = new Focusable(button, { disableable: this._disableable, hover: true, tabbableAttr: "data-active" });
+    button._selectable = new Selectable(button, {
+      toggleable: false,
+      value: this.hasAttribute("value") ? this.getAttribute("value") : button.textContent.trim(),
+      label: this.hasAttribute("label") ? this.getAttribute("label") : button.textContent.trim(),
+      dataAttr: "data-checked",
+      ariaAttr: "aria-checked",
+      selectedInitially: this.hasAttribute("checked")
+    });
+    on(button, "click", () => {
+      this.dispatchEvent(new CustomEvent("lofi-close-popovers", { bubbles: true }));
+      button._selectable.press();
+    });
+    respondToKeyboardClick(button);
+  }
+};
+var UIMenuRadioGroup = class extends UIElement {
+  boot() {
+    this._selectable = new SelectableGroup(this);
+    this._controllable = new Controllable(this);
+    setAttribute2(this, "role", "group");
+    this._controllable.initial((initial) => initial && this._selectable.setState(initial));
+    this._controllable.getter(() => this._selectable.getState());
+    let detangled = detangle();
+    this._controllable.setter(detangled((value) => {
+      this._selectable.setState(value);
+    }));
+    this._selectable.onChange(detangled(() => {
+      this._controllable.dispatch();
+    }));
+  }
+};
+var UIMenuCheckboxGroup = class extends UIElement {
+  boot() {
+    this._selectable = new SelectableGroup(this, { multiple: true });
+    this._controllable = new Controllable(this);
+    setAttribute2(this, "role", "group");
+    this._controllable.initial((initial) => initial && this._selectable.setState(initial));
+    this._controllable.getter(() => this._selectable.getState());
+    let detangled = detangle();
+    this._controllable.setter(detangled((value) => {
+      this._selectable.setState(value);
+    }));
+    this._selectable.onChange(detangled(() => {
+      this._controllable.dispatch();
+    }));
+  }
+};
+inject(({ css }) => css`ui-menu[popover]:popover-open { display: block; }`);
+inject(({ css }) => css`ui-menu[popover].\:popover-open { display: block; }`);
+inject(({ css }) => css`ui-menu-checkbox, ui-menu-radio { cursor: default; display: contents; }`);
+element("menu", UIMenu);
+element("submenu", UISubmenu);
+element("menu-checkbox", UIMenuCheckbox);
+element("menu-radio", UIMenuRadio);
+element("menu-radio-group", UIMenuRadioGroup);
+element("menu-checkbox-group", UIMenuCheckboxGroup);
+function respondToKeyboardClick(el) {
+  on(el, "keydown", (e) => {
+    if (e.key === "Enter") {
+      el.click();
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  });
+  on(el, "keydown", (e) => {
+    if (e.key === " ") {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  });
+  on(el, "keyup", (e) => {
+    if (e.key === " ") {
+      el.click();
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  });
+}
+function initializeMenuItem(el) {
+  el._disableable = new Disableable(el);
+  el._disabled = el.hasAttribute("disabled");
+  let link = el.querySelector("a");
+  let button = el;
+  let submenu = el.parentElement.matches("ui-submenu") && el.parentElement.querySelector("ui-menu[popover]");
+  let target = link || button;
+  if (el._disabled) {
+    setAttribute2(target, "disabled", "");
+    setAttribute2(target, "aria-disabled", "true");
+  }
+  assignId(target, "menu-item");
+  setAttribute2(target, "role", "menuitem");
+  if (el._disabled) return;
+  target._focusable = new Focusable(target, { disableable: el._disableable, hover: true, tabbableAttr: "data-active" });
+  if (!submenu) {
+    el.hasAttribute("disabled") || on(el, "click", () => {
+      el.dispatchEvent(new CustomEvent("lofi-close-popovers", { bubbles: true }));
+    });
+    respondToKeyboardClick(button);
+  } else {
+    submenu._popoverable = new Popoverable(submenu, { trigger: button });
+    submenu._anchorable = new Anchorable(submenu, {
+      reference: button,
+      position: submenu.hasAttribute("position") ? submenu.getAttribute("position") : "right start",
+      gap: submenu.hasAttribute("gap") ? submenu.getAttribute("gap") : "-5"
+    });
+    button.addEventListener("click", (e) => {
+      submenu._popoverable.setState(true);
+    });
+    let { clear } = interest(button, submenu, {
+      gain() {
+        submenu._popoverable.setState(true);
+      },
+      lose() {
+        submenu._popoverable.setState(false);
+      },
+      focusable: false
+    });
+    submenu._popoverable.onChange(() => {
+      if (!submenu._popoverable.getState()) {
+        clear();
+        submenu._focusable.wipeTabbables();
+      }
+      submenu._anchorable.reposition();
+    });
+    on(button, "keydown", (e) => {
+      if (e.key === "Enter") {
+        submenu._popoverable.setState(true);
+        setTimeout(() => submenu._focusable.focusFirst());
+      }
+    });
+    on(button, "keydown", (e) => {
+      if (e.key === "ArrowRight") {
+        submenu._popoverable.setState(true);
+        setTimeout(() => submenu._focusable.focusFirst());
+      }
+    });
+    on(submenu, "keydown", (e) => {
+      if (e.key === "ArrowLeft") {
+        submenu._popoverable.setState(false);
+        button.focus();
+        e.stopPropagation();
+      }
+    });
+  }
+}
+
+// js/toolbar.js
+var UIToolbar = class _UIToolbar extends UIElement {
+  mount() {
+    this._focusable = new FocusableGroup(this, { wrap: true });
+    this._disableable = new Disableable(this);
+    let undoDisableds = [];
+    this._disableable.onInitAndChange((disabled) => {
+      if (disabled) {
+        setAttribute2(this, "aria-disabled", "true");
+        this.walker().each((el) => {
+          if (!el.hasAttribute("disabled")) {
+            setAttribute2(el, "disabled", "true");
+            setAttribute2(el, "aria-disabled", "true");
+            undoDisableds.push(() => {
+              removeAndReleaseAttribute(el, "disabled");
+              removeAndReleaseAttribute(el, "aria-disabled");
+            });
+          }
+        });
+      } else {
+        removeAndReleaseAttribute(this, "aria-disabled");
+        undoDisableds.forEach((fn) => fn());
+        undoDisableds = [];
+      }
+    });
+    on(this, "keydown", (e) => {
+      if (["ArrowRight"].includes(e.key)) {
+        e.target === this ? this._focusable.focusFirst() : this._focusable.focusNext();
+        e.preventDefault();
+        e.stopPropagation();
+      } else if (["ArrowLeft"].includes(e.key)) {
+        e.target === this ? this._focusable.focusFirst() : this._focusable.focusPrev();
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+    setAttribute2(this, "role", "toolbar");
+    this.initializeToolbarItems();
+  }
+  initializeToolbarItems() {
+    this.walker().each((el) => {
+      if (el._disableable) return;
+      initializeToolbarItem(el);
+    });
+  }
+  walker() {
+    return walker(this, (el, { skip, reject }) => {
+      if (el instanceof _UIToolbar) return reject();
+      if (el.hasAttribute("popover")) return reject();
+      if (el instanceof UIMenu) return reject();
+      if (el instanceof UIOptions) return reject();
+      if (!["a", "button"].includes(el.localName)) return skip();
+    });
+  }
+};
+element("toolbar", UIToolbar);
+function initializeToolbarItem(el) {
+  el._disableable = new Disableable(el);
+  el._disabled = el.hasAttribute("disabled");
+  let link = el.querySelector("a");
+  let button = el;
+  let target = link || button;
+  if (el._disabled) {
+    setAttribute2(target, "disabled", "");
+    setAttribute2(target, "aria-disabled", "true");
+  }
+  if (el._disabled) return;
+  target._focusable = new Focusable(target, { disableable: el._disableable });
+}
+
+// js/tooltip.js
+var UITooltip = class extends UIElement {
+  boot() {
+    let type = this.hasAttribute("label") ? "label" : "description";
+    let button = this.button();
+    let overlay = this.overlay();
+    if (!button) {
+      return console.warn("ui-tooltip: no trigger element found", this);
+    } else if (!overlay) {
+      return;
+    }
+    this._disabled = this.hasAttribute("disabled");
+    overlay._popoverable = new Popoverable(overlay, { scope: "tooltip" });
+    overlay._anchorable = new Anchorable(overlay, {
+      reference: button,
+      position: this.hasAttribute("position") ? this.getAttribute("position") : void 0,
+      gap: this.hasAttribute("gap") ? this.getAttribute("gap") : void 0,
+      offset: this.hasAttribute("offset") ? this.getAttribute("offset") : void 0
+    });
+    overlay._popoverable.onChange(() => overlay._anchorable.reposition());
+    if (!this._disabled) {
+      interest(button, overlay, {
+        gain() {
+          overlay._popoverable.setState(true);
+        },
+        lose() {
+          overlay._popoverable.setState(false);
+        },
+        focusable: true,
+        useSafeArea: false
+      });
+    }
+    let id = assignId(overlay, "tooltip");
+    let interactive = this.hasAttribute("interactive");
+    let wantsLabel = this.hasAttribute("label") || button.textContent.trim() === "";
+    if (interactive) {
+      setAttribute2(button, "aria-controls", id);
+      setAttribute2(button, "aria-expanded", "false");
+      overlay._popoverable.onChange(() => {
+        overlay._popoverable.getState() ? setAttribute2(button, "aria-expanded", "true") : setAttribute2(button, "aria-expanded", "false");
+      });
+    } else {
+      if (wantsLabel) setAttribute2(button, "aria-labelledby", id);
+      else setAttribute2(button, "aria-describedby", id);
+      setAttribute2(overlay, "aria-hidden", "true");
+    }
+    setAttribute2(overlay, "role", "tooltip");
+  }
+  button() {
+    return this.firstElementChild;
+  }
+  overlay() {
+    return this.lastElementChild !== this.button() && this.lastElementChild;
+  }
+};
+element("tooltip", UITooltip);
 
 // js/switch.js
 var UISwitch = class extends UIControl {
@@ -5283,23 +5813,41 @@ element("switch", UISwitch);
 var UIField = class _UIField extends UIElement {
   mount() {
     this.control = this.fieldWalker().find((el) => this.isControl(el));
+    if (!this.control) return;
+  }
+  associateLabelWithControl(control) {
+    if (!control) return;
+    if (!this.label) return;
+    this.control = control;
+    if (this.control.hasAttribute("aria-labelledby")) return;
+    setAttribute2(this.elOrButton(this.control), "aria-labelledby", this.label.id);
     if (this.control && !(this.control instanceof UIControl) && this.hasAttribute("disabled")) {
       this.control.setAttribute("disabled", "");
     }
   }
+  associateDescriptionWithControl(control) {
+    if (!control) return;
+    if (!this.description) return;
+    this.control = control;
+    if (this.control.hasAttribute("aria-describedby")) return;
+    setAttribute2(this.elOrButton(this.control), "aria-describedby", this.description.id);
+  }
   associateLabel(label) {
+    this.label = label;
     on(label, "click", (e) => {
       if (["a", "button"].includes(e.target.localName)) return;
       this.focusOrTogggle(this.control);
     });
-    setAttribute2(this.elOrButton(this.control), "aria-labelledby", label.id);
+    this.control && this.associateLabelWithControl(this.control);
   }
   associateDescription(description) {
-    setAttribute2(this.elOrButton(this.control), "aria-describedby", description.id);
+    this.description = description;
+    this.control && this.associateDescriptionWithControl(this.control);
   }
   fieldWalker() {
     return walker(this, (el, { skip, reject }) => {
       if (el instanceof _UIField && el !== this) return reject();
+      if (el.parentElement.localName === "ui-editor" && el !== this) return reject();
     });
   }
   isControl(el) {
@@ -5310,19 +5858,16 @@ var UIField = class _UIField extends UIElement {
   focusOrTogggle(control) {
     if (!control) return;
     if (control.disabled || control.hasAttribute("disabled")) return;
-    if (control.localName === "input" && ["checkbox"].includes(control.type)) {
-      control.checked = !control.checked;
-      control.focus();
-    } else if (control.localName === "input" && ["radio"].includes(control.type)) {
-      control.checked = true;
+    let isCheckable = control.localName === "input" && ["checkbox", "radio"].includes(control.type) || ["ui-switch", "ui-radio", "ui-checkbox"].includes(control.localName);
+    if (isCheckable) {
+      control.click();
       control.focus();
     } else if (control.localName === "input" && ["file"].includes(control.type)) {
       control.click();
-    } else if (["ui-switch", "ui-radio", "ui-checkbox"].includes(control.localName)) {
-      control.checked = !control.checked;
-      control.focus();
     } else if (["ui-select"].includes(control.localName)) {
       control.trigger().focus();
+    } else if (["ui-editor"].includes(control.localName)) {
+      control.focus();
     } else {
       control.focus();
     }
@@ -5357,6 +5902,9 @@ element("description", UIDescription);
 // js/mixins/dialogable.js
 var Dialogable = class extends Mixin {
   boot({ options }) {
+    options({
+      clickOutside: true
+    });
     this.onChanges = [];
     this.state = false;
     let observer = new MutationObserver((mutations) => {
@@ -5367,14 +5915,16 @@ var Dialogable = class extends Mixin {
       this.onChanges.forEach((i) => i());
     });
     observer.observe(this.el, { attributeFilter: ["open"] });
-    this.el.addEventListener("click", (e) => {
-      if (e.target !== this.el) return;
-      if (clickHappenedOutside(this.el, e)) {
-        this.hide();
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    });
+    if (this.options().clickOutside) {
+      this.el.addEventListener("click", (e) => {
+        if (e.target !== this.el) return;
+        if (clickHappenedOutside(this.el, e)) {
+          this.cancel();
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      });
+    }
     if (this.el.hasAttribute("open")) {
       this.state = true;
       this.hide();
@@ -5389,6 +5939,13 @@ var Dialogable = class extends Mixin {
   }
   hide() {
     this.el.close();
+  }
+  cancel() {
+    let event = new Event("cancel", { bubbles: false, cancelable: true });
+    this.el.dispatchEvent(event);
+    if (!event.defaultPrevented) {
+      this.hide();
+    }
   }
   getState() {
     return this.state;
@@ -5412,7 +5969,9 @@ var UIModal = class extends UIElement {
     let button = this.button();
     let dialog = this.dialog();
     if (!dialog) return;
-    dialog._dialogable = new Dialogable(dialog);
+    dialog._dialogable = new Dialogable(dialog, {
+      clickOutside: !this.hasAttribute("disable-click-outside")
+    });
     this._controllable.initial((initial) => initial && dialog._dialogable.show());
     this._controllable.getter(() => dialog._dialogable.getState());
     let detangled = detangle();
@@ -5435,6 +5994,10 @@ var UIModal = class extends UIElement {
     };
     dialog._dialogable.onChange(() => refresh());
     refresh();
+    let { lock, unlock } = lockScroll();
+    dialog._dialogable.onChange(() => {
+      dialog._dialogable.getState() ? lock() : unlock();
+    });
     button && on(button, "click", (e) => {
       dialog._dialogable.show();
     });
@@ -5640,276 +6203,6 @@ inject(({ css }) => css`ui-radio { display: inline-block; user-select: none; }`)
 element("radio-group", UIRadioGroup);
 element("radio", UIRadio);
 
-// js/menu.js
-var UIMenu = class _UIMenu extends UIElement {
-  boot() {
-    this._focusable = new FocusableGroup(this, { wrap: false, ensureTabbable: false });
-    on(this, "keydown", (e) => {
-      if (["ArrowDown"].includes(e.key)) {
-        e.target === this ? this._focusable.focusFirst() : this._focusable.focusNext();
-        e.preventDefault();
-        e.stopPropagation();
-      } else if (["ArrowUp"].includes(e.key)) {
-        e.target === this ? this._focusable.focusFirst() : this._focusable.focusPrev();
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    });
-    search(this, (query) => this._focusable.focusBySearch(query));
-    if (this.hasAttribute("popover")) {
-      this.addEventListener("lofi-close-popovers", () => {
-        setTimeout(() => this.hidePopover(), 50);
-      });
-    }
-    if (this.parentElement.localName === "ui-dropdown") {
-      let dropdown = this.parentElement;
-      on(dropdown.trigger(), "keydown", (e) => {
-        if (e.key === "ArrowDown") {
-          this.fromArrowDown = true;
-          this.showPopover();
-          e.preventDefault();
-          e.stopPropagation();
-        }
-      });
-    }
-    setAttribute2(this, "role", "menu");
-    setAttribute2(this, "tabindex", "-1");
-  }
-  mount() {
-    this.initializeMenuItems();
-    let observer = new MutationObserver((mutations) => {
-      this.initializeMenuItems();
-    });
-    observer.observe(this, { childList: true, subtree: true });
-  }
-  onPopoverShow() {
-    queueMicrotask(() => {
-      if (this.fromArrowDown) {
-        this._focusable.focusFirst();
-        this.fromArrowDown = false;
-      } else {
-        this.focus();
-      }
-    });
-  }
-  onPopoverHide() {
-    this._focusable.wipeTabbables();
-  }
-  initializeMenuItems() {
-    this.walker().each((el) => {
-      if (el._disableable) return;
-      initializeMenuItem(el);
-    });
-  }
-  walker() {
-    return walker(this, (el, { skip, reject }) => {
-      if (el instanceof _UIMenu) return reject();
-      if (el instanceof UISelect) return reject();
-      if (!["a", "button"].includes(el.localName)) return skip();
-    });
-  }
-};
-var UISubmenu = class extends UIElement {
-  boot() {
-  }
-};
-var UIMenuCheckbox = class extends UIElement {
-  boot() {
-    this._disabled = this.hasAttribute("disabled");
-    this._disableable = new Disableable(this);
-    let button = this;
-    if (this._disabled) {
-      setAttribute2(button, "disabled", "");
-      setAttribute2(button, "aria-disabled", "true");
-    }
-    let id = assignId(button, "menu-checkbox");
-    setAttribute2(button, "role", "menuitemcheckbox");
-    if (this._disabled) return;
-    button._focusable = new Focusable(button, { disableable: this._disableable, hover: true, tabbableAttr: "data-active" });
-    button._selectable = new Selectable(button, {
-      toggleable: true,
-      value: this.hasAttribute("value") ? this.getAttribute("value") : button.textContent.trim(),
-      label: this.hasAttribute("label") ? this.getAttribute("label") : button.textContent.trim(),
-      dataAttr: "data-checked",
-      ariaAttr: "aria-checked",
-      selectedInitially: this.hasAttribute("checked")
-    });
-    this._controllable = new Controllable(this);
-    this._controllable.initial((initial) => initial && button._selectable.setState(initial));
-    this._controllable.getter(() => button._selectable.getState());
-    let detangled = detangle();
-    this._controllable.setter(detangled((value) => {
-      this._selectable.setState(value);
-    }));
-    this._selectable.onChange(detangled(() => {
-      this._controllable.dispatch();
-    }));
-    on(button, "click", () => {
-      this.dispatchEvent(new CustomEvent("lofi-close-popovers", { bubbles: true }));
-      button._selectable.press();
-    });
-    respondToKeyboardClick(button);
-  }
-};
-var UIMenuRadio = class extends UIElement {
-  boot() {
-    this._disabled = this.hasAttribute("disabled");
-    this._disableable = new Disableable(this);
-    let button = this;
-    if (this._disabled) {
-      setAttribute2(button, "disabled", "");
-      setAttribute2(button, "aria-disabled", "true");
-    }
-    let id = assignId(button, "menu-radio");
-    setAttribute2(button, "role", "menuitemradio");
-    if (this._disabled) return;
-    button._focusable = new Focusable(button, { disableable: this._disableable, hover: true, tabbableAttr: "data-active" });
-    button._selectable = new Selectable(button, {
-      toggleable: false,
-      value: this.hasAttribute("value") ? this.getAttribute("value") : button.textContent.trim(),
-      label: this.hasAttribute("label") ? this.getAttribute("label") : button.textContent.trim(),
-      dataAttr: "data-checked",
-      ariaAttr: "aria-checked",
-      selectedInitially: this.hasAttribute("checked")
-    });
-    on(button, "click", () => {
-      this.dispatchEvent(new CustomEvent("lofi-close-popovers", { bubbles: true }));
-      button._selectable.press();
-    });
-    respondToKeyboardClick(button);
-  }
-};
-var UIMenuRadioGroup = class extends UIElement {
-  boot() {
-    this._selectable = new SelectableGroup(this);
-    this._controllable = new Controllable(this);
-    setAttribute2(this, "role", "group");
-    this._controllable.initial((initial) => initial && this._selectable.setState(initial));
-    this._controllable.getter(() => this._selectable.getState());
-    let detangled = detangle();
-    this._controllable.setter(detangled((value) => {
-      this._selectable.setState(value);
-    }));
-    this._selectable.onChange(detangled(() => {
-      this._controllable.dispatch();
-    }));
-  }
-};
-var UIMenuCheckboxGroup = class extends UIElement {
-  boot() {
-    this._selectable = new SelectableGroup(this, { multiple: true });
-    this._controllable = new Controllable(this);
-    setAttribute2(this, "role", "group");
-    this._controllable.initial((initial) => initial && this._selectable.setState(initial));
-    this._controllable.getter(() => this._selectable.getState());
-    let detangled = detangle();
-    this._controllable.setter(detangled((value) => {
-      this._selectable.setState(value);
-    }));
-    this._selectable.onChange(detangled(() => {
-      this._controllable.dispatch();
-    }));
-  }
-};
-inject(({ css }) => css`ui-menu[popover]:popover-open { display: block; }`);
-inject(({ css }) => css`ui-menu[popover].\:popover-open { display: block; }`);
-inject(({ css }) => css`ui-menu-checkbox, ui-menu-radio { cursor: default; display: contents; }`);
-element("menu", UIMenu);
-element("submenu", UISubmenu);
-element("menu-checkbox", UIMenuCheckbox);
-element("menu-radio", UIMenuRadio);
-element("menu-radio-group", UIMenuRadioGroup);
-element("menu-checkbox-group", UIMenuCheckboxGroup);
-function respondToKeyboardClick(el) {
-  on(el, "keydown", (e) => {
-    if (e.key === "Enter") {
-      el.click();
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  });
-  on(el, "keydown", (e) => {
-    if (e.key === " ") {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  });
-  on(el, "keyup", (e) => {
-    if (e.key === " ") {
-      el.click();
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  });
-}
-function initializeMenuItem(el) {
-  el._disableable = new Disableable(el);
-  el._disabled = el.hasAttribute("disabled");
-  let link = el.querySelector("a");
-  let button = el;
-  let submenu = el.parentElement.matches("ui-submenu") && el.parentElement.querySelector("ui-menu[popover]");
-  let target = link || button;
-  if (el._disabled) {
-    setAttribute2(target, "disabled", "");
-    setAttribute2(target, "aria-disabled", "true");
-  }
-  let id = assignId(target, "menu-item");
-  setAttribute2(target, "role", "menuitem");
-  if (el._disabled) return;
-  target._focusable = new Focusable(target, { disableable: el._disableable, hover: true, tabbableAttr: "data-active" });
-  if (!submenu) {
-    el.hasAttribute("disabled") || on(el, "click", () => {
-      el.dispatchEvent(new CustomEvent("lofi-close-popovers", { bubbles: true }));
-    });
-    respondToKeyboardClick(button);
-  } else {
-    submenu._popoverable = new Popoverable(submenu, { trigger: button });
-    submenu._anchorable = new Anchorable(submenu, {
-      reference: button,
-      position: submenu.hasAttribute("position") ? submenu.getAttribute("position") : "right start",
-      gap: submenu.hasAttribute("gap") ? submenu.getAttribute("gap") : "-5"
-    });
-    button.addEventListener("click", (e) => {
-      submenu._popoverable.setState(true);
-    });
-    let { clear } = interest(button, submenu, {
-      gain() {
-        submenu._popoverable.setState(true);
-      },
-      lose() {
-        submenu._popoverable.setState(false);
-      },
-      focusable: false
-    });
-    submenu._popoverable.onChange(() => {
-      if (!submenu._popoverable.getState()) {
-        clear();
-        submenu._focusable.wipeTabbables();
-      }
-      submenu._anchorable.reposition();
-    });
-    on(button, "keydown", (e) => {
-      if (e.key === "Enter") {
-        submenu._popoverable.setState(true);
-        setTimeout(() => submenu._focusable.focusFirst());
-      }
-    });
-    on(button, "keydown", (e) => {
-      if (e.key === "ArrowRight") {
-        submenu._popoverable.setState(true);
-        setTimeout(() => submenu._focusable.focusFirst());
-      }
-    });
-    on(submenu, "keydown", (e) => {
-      if (e.key === "ArrowLeft") {
-        submenu._popoverable.setState(false);
-        button.focus();
-        e.stopPropagation();
-      }
-    });
-  }
-}
-
 // js/tabs.js
 var UITabGroup = class _UITabGroup extends UIElement {
   boot() {
@@ -5917,6 +6210,9 @@ var UITabGroup = class _UITabGroup extends UIElement {
   }
   mount() {
     this.walkPanels((el) => initializePanel(el));
+    new MutationObserver((mutations) => {
+      this.walkPanels((el) => initializePanel(el));
+    }).observe(this, { childList: true });
   }
   showPanel(name) {
     this.walkPanels((el) => {
@@ -5979,11 +6275,19 @@ var UITabs = class _UITabs extends UIControl {
     if (!this._selectableGroup.getState()) {
       this._selectableGroup.selectFirst();
     }
+    new MutationObserver((mutations) => {
+      this.initializeTabs();
+      let selected = this._selectableGroup.selected();
+      selected.el.closest("ui-tab-group").showPanel(selected.value);
+    }).observe(this, { childList: true });
   }
   initializeTabs() {
     this.walker().each((el) => {
+      if (el._initialized) return;
       if (el._disableable) return;
+      if (el.hasAttribute("action")) return;
       initializeTab(el);
+      el._initialized = true;
     });
   }
   walker() {
@@ -6037,6 +6341,7 @@ function initializeTab(el) {
   }
 }
 function initializePanel(el) {
+  if (el._initialized) return;
   assignId(el, "tab-panel");
   setAttribute2(el, "role", "tabpanel");
   el.hasAttribute("tabindex") || setAttribute2(el, "tabindex", "-1");
@@ -6048,10 +6353,113 @@ function initializePanel(el) {
     removeAttribute(el, "data-selected");
     setAttribute2(el, "tabindex", "-1");
   };
+  el._initialized = true;
 }
 inject(({ css }) => css`ui-tab-group, ui-tabs { display: block; cursor: default; }`);
 element("tab-group", UITabGroup);
 element("tabs", UITabs);
+
+// js/store.js
+var selectorDarkMode = isUsingSelectorForDarkModeInTailwind();
+if (selectorDarkMode) {
+  inject(({ css }) => css`:root.dark { color-scheme: dark; }`);
+}
+document.addEventListener("alpine:init", () => {
+  let flux = Alpine.reactive({
+    toast(...params) {
+      let detail = { slots: {}, dataset: {} };
+      if (typeof params[0] === "string") {
+        detail.slots.text = params.shift();
+      }
+      if (typeof params[0] === "string") {
+        detail.slots.heading = detail.slots.text;
+        detail.slots.text = params.shift();
+      }
+      let options = params.shift() || {};
+      if (options.text) detail.slots.text = options.text;
+      if (options.heading) detail.slots.heading = options.heading;
+      if (options.variant) detail.dataset.variant = options.variant;
+      if (options.position) detail.dataset.position = options.position;
+      document.dispatchEvent(new CustomEvent("toast-show", { detail }));
+    },
+    modal(name) {
+      return {
+        show() {
+          document.dispatchEvent(new CustomEvent("modal-show", { detail: { name } }));
+        },
+        close() {
+          document.dispatchEvent(new CustomEvent("modal-close", { detail: { name } }));
+        }
+      };
+    },
+    modals() {
+      return { close() {
+        document.dispatchEvent(new CustomEvent("modal-close", { detail: {} }));
+      } };
+    },
+    appearance: window.localStorage.getItem("flux.appearance") || "system",
+    systemAppearanceChanged: 1,
+    // A counter to trigger reactivity when the system appearance changes...
+    get dark() {
+      JSON.stringify(flux.systemAppearanceChanged);
+      if (flux.appearance === "system") {
+        let media2 = window.matchMedia("(prefers-color-scheme: dark)");
+        return media2.matches;
+      } else {
+        return flux.appearance === "dark";
+      }
+    },
+    set dark(value) {
+      let current = this.dark;
+      if (value === current) return;
+      if (value) {
+        flux.appearance = "dark";
+      } else {
+        flux.appearance = "light";
+      }
+    }
+  });
+  window.Flux = flux;
+  Alpine.magic("flux", () => flux);
+  selectorDarkMode && Alpine.effect(() => {
+    applyAppearance(flux.appearance);
+  });
+  selectorDarkMode && document.addEventListener("livewire:navigated", () => {
+    applyAppearance(flux.appearance);
+  });
+  let media = window.matchMedia("(prefers-color-scheme: dark)");
+  selectorDarkMode && media.addEventListener("change", () => {
+    flux.systemAppearanceChanged++;
+    applyAppearance(flux.appearance);
+  });
+});
+function applyAppearance(appearance) {
+  let applyDark = () => document.documentElement.classList.add("dark");
+  let applyLight = () => document.documentElement.classList.remove("dark");
+  if (appearance === "system") {
+    let media = window.matchMedia("(prefers-color-scheme: dark)");
+    window.localStorage.removeItem("flux.appearance");
+    media.matches ? applyDark() : applyLight();
+  } else if (appearance === "dark") {
+    window.localStorage.setItem("flux.appearance", "dark");
+    applyDark();
+  } else if (appearance === "light") {
+    window.localStorage.setItem("flux.appearance", "light");
+    applyLight();
+  }
+}
+function isUsingSelectorForDarkModeInTailwind() {
+  let beacon = document.createElement("div");
+  beacon.setAttribute("data-flux-dark-mode-beacon", "");
+  document.body.appendChild(beacon);
+  let beforeDarkClass = getComputedStyle(beacon).display === "none";
+  beacon.classList.add("dark:[&[data-flux-dark-mode-beacon]]:hidden");
+  beacon.classList.add("dark");
+  let afterDarkClass = getComputedStyle(beacon).display === "none";
+  let result = !beforeDarkClass && afterDarkClass;
+  beacon.remove();
+  return result;
+}
 
 // js/index.js
 if (!isSupported2() && !isPolyfilled()) {

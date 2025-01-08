@@ -2,6 +2,10 @@ import { Mixin } from './mixin.js'
 
 export class Dialogable extends Mixin {
     boot({ options }) {
+        options({
+            clickOutside: true,
+        })
+
         this.onChanges = []
 
         this.state = false
@@ -22,20 +26,22 @@ export class Dialogable extends Mixin {
 
         observer.observe(this.el, { attributeFilter: ['open'] })
 
-        // Clicking outside the dialog should close it...
-        this.el.addEventListener('click', e => {
-            // Clicking the ::backdrop pseudo-element is treated the same as clicking the <dialog> element itself
-            // Therefore, we can dissregard clicks on any element other than the <dialog> element itself...
-            if (e.target !== this.el) return
+        if (this.options().clickOutside) {
+            // Clicking outside the dialog should close it...
+            this.el.addEventListener('click', e => {
+                // Clicking the ::backdrop pseudo-element is treated the same as clicking the <dialog> element itself
+                // Therefore, we can dissregard clicks on any element other than the <dialog> element itself...
+                if (e.target !== this.el) return
 
-            // Again, because we can't listen for clicks on ::backdrop, we have to test for intersection
-            // between the click and the visible parts of the dialog elements...
-            if (clickHappenedOutside(this.el, e)) {
-                this.hide()
+                // Again, because we can't listen for clicks on ::backdrop, we have to test for intersection
+                // between the click and the visible parts of the dialog elements...
+                if (clickHappenedOutside(this.el, e)) {
+                    this.cancel()
 
-                e.preventDefault(); e.stopPropagation()
-            }
-        })
+                    e.preventDefault(); e.stopPropagation()
+                }
+            })
+        }
 
         if (this.el.hasAttribute('open')) {
             this.state = true
@@ -54,6 +60,19 @@ export class Dialogable extends Mixin {
 
     hide() {
         this.el.close()
+    }
+
+    cancel() {
+        // Dispatch a `cancel` event that simulates the cancel event that is dispatched by the
+        // `dialog` element when escape is pressed. The native cancel event does not bubble
+        // but it can be cancelled...
+        let event = new Event('cancel', { bubbles: false, cancelable: true })
+
+        this.el.dispatchEvent(event)
+
+        if (! event.defaultPrevented) {
+            this.hide()
+        }
     }
 
     getState() {

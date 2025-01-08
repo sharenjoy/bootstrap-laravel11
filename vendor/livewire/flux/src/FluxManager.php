@@ -41,18 +41,28 @@ class FluxManager
         $this->hasRenderedAssets = true;
     }
 
-    public function styles()
+    public function styles($options = [])
     {
         $this->markAssetsRendered();
 
-        return AssetManager::styles();
+        return AssetManager::styles($options);
     }
 
-    public function scripts()
+    public function scripts($options = [])
     {
         $this->markAssetsRendered();
 
-        return AssetManager::scripts();
+        return AssetManager::scripts($options);
+    }
+
+    public function editorStyles()
+    {
+        return AssetManager::editorStyles();
+    }
+
+    public function editorScripts()
+    {
+        return AssetManager::editorScripts();
     }
 
     public function classes($styles = null)

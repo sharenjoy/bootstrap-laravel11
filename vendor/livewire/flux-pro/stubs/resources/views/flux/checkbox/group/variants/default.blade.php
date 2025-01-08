@@ -1,5 +1,3 @@
-@php $attributes = $unescapedForwardedAttributes ?? $attributes; @endphp
-
 @php
 $classes = Flux::classes()
     ->add('[&>[data-flux-field]]:mb-3')

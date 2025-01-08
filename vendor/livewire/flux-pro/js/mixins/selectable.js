@@ -51,8 +51,17 @@ export class SelectableGroup extends MixinGroup {
     }
 
     setState(value) {
-        // Ensure that the value is a string. Select values can only be strings...
-        value = this.options().multiple ? (value || []).map(i => i + '') : (value + '')
+        if (value === null) value = this.multiple ? [] : ''
+
+        if (this.options().multiple) {
+            if (! Array.isArray(value)) value = [value]
+
+            // Ensure that the value is a string. Select values can only be strings...
+            value = value.map(i => i + '')
+        } else {
+            // Ensure that the value is a string. Select values can only be strings...
+            value = value + ''
+        }
 
         this.state = this.options().multiple ? new Set(value) : value
 

@@ -1,5 +1,4 @@
-import { assignId, element, interest, on, removeAttribute, setAttribute } from './utils.js'
-import { Controllable } from './mixins/controllable.js'
+import { element, lockScroll, on, setAttribute } from './utils.js'
 import { Popoverable } from './mixins/popoverable.js'
 import { Anchorable } from './mixins/anchorable.js'
 import { UIElement } from './element.js'
@@ -17,6 +16,12 @@ class UIContext extends UIElement {
             position: this.hasAttribute('position') ? this.getAttribute('position') : undefined,
             gap: this.hasAttribute('gap') ? this.getAttribute('gap') : undefined,
             offset: this.hasAttribute('offset') ? this.getAttribute('offset') : undefined,
+        })
+
+        let { lock, unlock } = lockScroll()
+
+        this._popoverable.onChange(() => {
+            this._popoverable.getState() ? lock() : unlock()
         })
 
         on(trigger, 'contextmenu', e => {

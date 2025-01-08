@@ -2,6 +2,7 @@
 
 namespace Flux;
 
+use Illuminate\View\ComponentAttributeBag;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Arr;
@@ -21,8 +22,8 @@ class FluxServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->bootComponentPath();
-
         $this->bootTagCompiler();
+        $this->bootMacros();
 
         AssetManager::boot();
 
@@ -52,6 +53,21 @@ class FluxServiceProvider extends ServiceProvider
 
         app('blade.compiler')->precompiler(function ($in) use ($compiler) {
             return $compiler->compile($in);
+        });
+    }
+
+    public function bootMacros()
+    {
+        app('view')::macro('getCurrentComponentData', function () {
+            return $this->currentComponentData;
+        });
+
+        ComponentAttributeBag::macro('pluck', function ($key) {
+            $result = $this->get($key);
+
+            unset($this->attributes[$key]);
+
+            return $result;
         });
     }
 

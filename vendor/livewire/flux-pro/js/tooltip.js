@@ -17,7 +17,7 @@ class UITooltip extends UIElement {
         }
 
         this._disabled = this.hasAttribute('disabled')
-        overlay._popoverable = new Popoverable(overlay)
+        overlay._popoverable = new Popoverable(overlay, { scope: 'tooltip' })
         overlay._anchorable = new Anchorable(overlay, {
             reference: button,
             position: this.hasAttribute('position') ? this.getAttribute('position') : undefined,
@@ -35,22 +35,30 @@ class UITooltip extends UIElement {
                 gain() { overlay._popoverable.setState(true) },
                 lose() { overlay._popoverable.setState(false) },
                 focusable: true,
+                useSafeArea: false,
             })
         }
 
         let id = assignId(overlay, 'tooltip')
 
-        setAttribute(button, 'aria-controls', id)
-        setAttribute(button, 'aria-expanded', 'false')
+        let interactive = this.hasAttribute('interactive')
 
-        overlay._popoverable.onChange(() => {
-            overlay._popoverable.getState()
-                ? setAttribute(button, 'aria-expanded', 'true')
-                : setAttribute(button, 'aria-expanded', 'false')
-        })
+        let wantsLabel = this.hasAttribute('label') || button.textContent.trim() === ''
 
-        if (type === 'label') setAttribute(button, 'aria-labelledby', id)
-        else setAttribute(button, 'aria-describedby', id)
+        if (interactive) {
+            setAttribute(button, 'aria-controls', id)
+            setAttribute(button, 'aria-expanded', 'false')
+
+            overlay._popoverable.onChange(() => {
+                overlay._popoverable.getState()
+                    ? setAttribute(button, 'aria-expanded', 'true')
+                    : setAttribute(button, 'aria-expanded', 'false')
+            })
+        } else {
+            if (wantsLabel) setAttribute(button, 'aria-labelledby', id)
+            else setAttribute(button, 'aria-describedby', id)
+            setAttribute(overlay, 'aria-hidden', 'true')
+        }
 
         setAttribute(overlay, 'role', 'tooltip')
     }
