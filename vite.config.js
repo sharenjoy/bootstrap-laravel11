@@ -13,7 +13,7 @@ export default defineConfig({
                 ...refreshPaths,
                 'app/Livewire/**',
             ],
-            detectTls: 'takephoto.ink.test',
+            detectTls: 'bootstrap-laravel11.test',
         }),
 
         viteCompression(),

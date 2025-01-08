@@ -76,5 +76,15 @@
     "Whoops!": "哎呀！",
     "You are receiving this email because we received a password reset request for your account.": "您收到此電子郵件是因為我們收到了重設密碼的要求。",
     "You're logged in!": "您已登入！",
-    "Your email address is unverified.": "您的電子郵件地址尚未驗證。"
+    "Your email address is unverified.": "您的電子郵件地址尚未驗證。",
+
+    "Orders": "訂單紀錄",
+    "Coupons": "折價券",
+    "Shopping Credit": "購物金",
+    "Reward Points": "紅利點數",
+    "Settings": "會員設定",
+    "Email notifications": "信件通知",
+    "Preferences": "偏好設定",
+    "Home": "返回首頁",
+    "": ""
 }

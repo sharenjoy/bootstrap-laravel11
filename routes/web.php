@@ -22,8 +22,20 @@ Route::group([
         'prefix' => 'member',
         'middleware' => ['auth', 'verified']
     ], function () {
-        /** ALL MEMBER ROUTES **/
-        Volt::route('dashboard', 'member.dashboard')->name('member.dashboard');
+        /** ALL DASHBOARD ROUTES **/
+        Volt::route('orders', 'member.orders')->name('member.orders');
+        Volt::route('orders/{id}', 'member.order-detail')->name('member.order-detail');
+        Volt::route('coupons', 'member.coupons')->name('member.coupons');
+        Volt::route('reward-points', 'member.reward-points')->name('member.reward-points');
+        Volt::route('shopping-credit', 'member.shopping-credit')->name('member.shopping-credit');
+        Route::group([
+            'prefix' => 'settings'
+        ], function () {
+            Volt::route('profile', 'member.settings.profile')->name('member.profile');
+            Volt::route('update-password', 'member.settings.update-password')->name('member.update-password');
+            Volt::route('email-notifications', 'member.settings.email-notifications')->name('member.email-notifications');
+            Volt::route('preferences', 'member.settings.preferences')->name('member.preferences');
+        });
     });
 
     Route::view('dashboard', 'dashboard')
