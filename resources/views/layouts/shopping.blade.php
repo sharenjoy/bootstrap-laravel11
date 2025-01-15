@@ -32,16 +32,6 @@
 
             <flux:navbar class="-mb-px max-lg:hidden">
                 <flux:navbar.item wire:navigate href="{{ route('home') }}">{{ __('Home') }}</flux:navbar.item>
-                <flux:navbar.item wire:navigate href="{{ route('member.orders') }}" :current="Route::currentRouteName() == 'member.orders'">{{ __('Orders') }}</flux:navbar.item>
-                <flux:navbar.item wire:navigate href="{{ route('member.coupons') }}" :current="Route::currentRouteName() == 'member.coupons'">{{ __('Coupons') }}</flux:navbar.item>
-                <flux:navbar.item wire:navigate href="{{ route('member.reward-points') }}" :current="Route::currentRouteName() == 'member.reward-points'">{{ __('Reward Points') }}</flux:navbar.item>
-                <flux:navbar.item wire:navigate href="{{ route('member.shopping-credit') }}" :current="Route::currentRouteName() == 'member.shopping-credit'">{{ __('Shopping Credit') }}</flux:navbar.item>
-                <flux:navbar.item wire:navigate href="{{ route('member.profile') }}" :current="in_array(Route::currentRouteName(), [
-                    'member.profile',
-                    'member.update-password',
-                    'member.email-notifications',
-                    'member.preferences',
-                ])">{{ __('Settings') }}</flux:navbar.item>
             </flux:navbar>
 
             <flux:spacer />
@@ -76,23 +66,13 @@
 
             <flux:navlist variant="outline">
                 <flux:navlist.item wire:navigate href="{{ route('home') }}">{{ __('Home') }}</flux:navlist.item>
-                <flux:navlist.item wire:navigate href="{{ route('member.orders') }}" :current="Route::currentRouteName() == 'member.orders'">{{ __('Orders') }}</flux:navlist.item>
-                <flux:navlist.item wire:navigate href="{{ route('member.coupons') }}" :current="Route::currentRouteName() == 'member.coupons'">{{ __('Coupons') }}</flux:navlist.item>
-                <flux:navlist.item wire:navigate href="{{ route('member.reward-points') }}" :current="Route::currentRouteName() == 'member.reward-points'">{{ __('Reward Points') }}</flux:navlist.item>
-                <flux:navlist.item wire:navigate href="{{ route('member.shopping-credit') }}" :current="Route::currentRouteName() == 'member.shopping-credit'">{{ __('Shopping Credit') }}</flux:navlist.item>
-                <flux:navlist.item wire:navigate href="{{ route('member.profile') }}" :current="in_array(Route::currentRouteName(), [
-                    'member.profile',
-                    'member.update-password',
-                    'member.email-notifications',
-                    'member.preferences',
-                ])">{{ __('Settings') }}</flux:navlist.item>
             </flux:navlist>
 
             <flux:spacer />
 
         </flux:sidebar>
 
-        <flux:main container class="bg-white">
+        <flux:main container class="bg-white px-0">
 
             {{ $slot }}
 

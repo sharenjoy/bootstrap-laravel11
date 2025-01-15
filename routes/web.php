@@ -17,10 +17,12 @@ Route::group([
     /** ADD ALL LOCALIZED ROUTES INSIDE THIS GROUP **/
 
     Volt::route('/', 'home')->name('home');
+    Volt::route('/shopping-cart', 'shopping-cart')->name('shopping-cart');
+    Volt::route('/checkout', 'checkout')->name('checkout');
 
     Route::group([
         'prefix' => 'member',
-        'middleware' => ['auth', 'verified']
+        // 'middleware' => ['auth', 'verified']
     ], function () {
         /** ALL DASHBOARD ROUTES **/
         Volt::route('orders', 'member.orders')->name('member.orders');

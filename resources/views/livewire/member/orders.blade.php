@@ -119,7 +119,7 @@ class extends MemberComponent {
     <td class="py-3 px-3 first:pl-0 last:pr-0 text-sm  text-zinc-500 dark:text-zinc-300 flex items-center gap-3" data-flux-cell="">
 </div>
 
-<flux:button variant="subtle" size="sm" class="text-blue-400 hover:text-blue-700" wire:navigate href="{{route('member.order-detail', ['id' => '1130111ILUL'])}}">1130111ILUL</flux:button>
+<flux:button variant="subtle" size="sm" class="!text-blue-400 !hover:text-blue-700" wire:navigate href="{{route('member.order-detail', ['id' => '1130111ILUL'])}}">1130111ILUL</flux:button>
 </td>
                             <td class="py-3 px-3 first:pl-0 last:pr-0 text-sm  text-zinc-500 dark:text-zinc-300 whitespace-nowrap" data-flux-cell="">
                                 2024/01/11
@@ -174,7 +174,7 @@ class extends MemberComponent {
     <td class="py-3 px-3 first:pl-0 last:pr-0 text-sm  text-zinc-500 dark:text-zinc-300 flex items-center gap-3" data-flux-cell="">
 </div>
 
-<flux:button variant="subtle" size="sm" class="text-blue-400 hover:text-blue-700" wire:navigate href="{{route('member.order-detail', ['id' => '1121208HFY8'])}}">1121208HFY8</flux:button>
+<flux:button variant="subtle" size="sm" class="!text-blue-400 !hover:text-blue-700" wire:navigate href="{{route('member.order-detail', ['id' => '1121208HFY8'])}}">1121208HFY8</flux:button>
 
 </td>
                             <td class="py-3 px-3 first:pl-0 last:pr-0 text-sm  text-zinc-500 dark:text-zinc-300 whitespace-nowrap" data-flux-cell="">
@@ -230,7 +230,7 @@ class extends MemberComponent {
     <td class="py-3 px-3 first:pl-0 last:pr-0 text-sm  text-zinc-500 dark:text-zinc-300 flex items-center gap-3" data-flux-cell="">
 </div>
 
-<flux:button variant="subtle" size="sm" class="text-blue-400 hover:text-blue-700" wire:navigate href="{{route('member.order-detail', ['id' => '1121208BCHC'])}}">1121208BCHC</flux:button>
+<flux:button variant="subtle" size="sm" class="!text-blue-400 !hover:text-blue-700" wire:navigate href="{{route('member.order-detail', ['id' => '1121208BCHC'])}}">1121208BCHC</flux:button>
 
 </td>
                             <td class="py-3 px-3 first:pl-0 last:pr-0 text-sm  text-zinc-500 dark:text-zinc-300 whitespace-nowrap" data-flux-cell="">
@@ -286,7 +286,7 @@ class extends MemberComponent {
     <td class="py-3 px-3 first:pl-0 last:pr-0 text-sm  text-zinc-500 dark:text-zinc-300 flex items-center gap-3" data-flux-cell="">
 </div>
 
-<flux:button variant="subtle" size="sm" class="text-blue-400 hover:text-blue-700" wire:navigate href="{{route('member.order-detail', ['id' => '1121206IIIY'])}}">1121206IIIY</flux:button>
+<flux:button variant="subtle" size="sm" class="!text-blue-400 !hover:text-blue-700" wire:navigate href="{{route('member.order-detail', ['id' => '1121206IIIY'])}}">1121206IIIY</flux:button>
 </td>
                             <td class="py-3 px-3 first:pl-0 last:pr-0 text-sm  text-zinc-500 dark:text-zinc-300 whitespace-nowrap" data-flux-cell="">
                                 2023/12/06
@@ -341,7 +341,7 @@ class extends MemberComponent {
     <td class="py-3 px-3 first:pl-0 last:pr-0 text-sm  text-zinc-500 dark:text-zinc-300 flex items-center gap-3" data-flux-cell="">
 </div>
 
-<flux:button variant="subtle" size="sm" class="text-blue-400 hover:text-blue-700" wire:navigate href="{{route('member.order-detail', ['id' => '1121206MR42'])}}">1121206MR42</flux:button>
+<flux:button variant="subtle" size="sm" class="!text-blue-400 !hover:text-blue-700" wire:navigate href="{{route('member.order-detail', ['id' => '1121206MR42'])}}">1121206MR42</flux:button>
 </td>
                             <td class="py-3 px-3 first:pl-0 last:pr-0 text-sm  text-zinc-500 dark:text-zinc-300 whitespace-nowrap" data-flux-cell="">
                                 2023/12/06

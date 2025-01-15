@@ -14,14 +14,14 @@ class extends MemberComponent {
         </x-slot>
 
         <x-slot name="settingDesc">
-            {{ __("Update your account's profile information and email address.") }}
+            {{ __("Save your preferred settings across the website.") }}
         </x-slot>
 
         <form wire:submit="submit">
             <div class="flex-1 space-y-6">
                 <flux:fieldset>
-                    <flux:legend>Language</flux:legend>
-                    <flux:description>Choose the languages you want to support.</flux:description>
+                    <flux:legend>{{ __('Language') }}</flux:legend>
+                    <flux:description>{{ __('You can easily save the website language by selecting your preferred version, ensuring a smoother browsing experience.') }}</flux:description>
                     <flux:radio.group>
                         <flux:radio
                             value="zh_TW"
@@ -42,16 +42,12 @@ class extends MemberComponent {
                 <flux:separator variant="subtle" />
 
                 <flux:fieldset>
-                    <flux:legend>Currency</flux:legend>
-                    <flux:description>Choose the languages you want to support.</flux:description>
-                    <flux:select variant="listbox" searchable placeholder="Choose industries...">
-                        <flux:option>Photography</flux:option>
-                        <flux:option>Design services</flux:option>
-                        <flux:option>Web development</flux:option>
-                        <flux:option>Accounting</flux:option>
-                        <flux:option>Legal services</flux:option>
-                        <flux:option>Consulting</flux:option>
-                        <flux:option>Other</flux:option>
+                    <flux:legend>{{ __('Currency') }}</flux:legend>
+                    <flux:description>{{ __('By saving your preferred currency, prices will be instantly converted to the corresponding value, making browsing and shopping more convenient.') }}</flux:description>
+                    <flux:select variant="listbox" searchable placeholder="選擇幣別...">
+                        <flux:option>TWD</flux:option>
+                        <flux:option>USD</flux:option>
+                        <flux:option>JPD</flux:option>
                     </flux:select>
                 </flux:fieldset>
 

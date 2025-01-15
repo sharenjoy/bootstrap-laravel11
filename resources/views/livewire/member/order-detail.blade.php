@@ -24,7 +24,7 @@ class extends MemberComponent {
             </flux:navlist>
         </div>
 
-        <flux:separator class="md:hidden border-0 [print-color-adjust:exact] bg-zinc-800/5 dark:bg-white/10 h-px w-full" />
+        <flux:separator variant="subtle" class="md:hidden" />
 
         <div class="flex-1 max-md:pt-6 self-stretch">
             <div class="mx-auto [:where(&)]:max-w-7xl max-w-xl lg:max-w-5xl">
@@ -45,9 +45,9 @@ class extends MemberComponent {
                     </div>
                 </div>
 
-                <flux:separator class="border-0 [print-color-adjust:exact] bg-zinc-800/5 dark:bg-white/10 h-px w-full my-8" />
+                <flux:separator variant="subtle" class="my-8" />
 
-                <flux:card class="bg-slate-100 border-0 mb-6">
+                <flux:card class="!bg-slate-50 border-0 mb-6">
                     <flux:table>
                         <flux:columns>
                             <flux:column>訂單編號</flux:column>
@@ -86,7 +86,7 @@ class extends MemberComponent {
 
                         <flux:rows class="bg-white">
                             <flux:row>
-                                <flux:cell><flux:button variant="subtle" size="sm" class="text-blue-400 hover:text-blue-700" wire:navigate href="{{route('member.order-detail', ['id' => '蘇摩夢油'])}}">蘇摩夢油</flux:button></flux:cell>
+                                <flux:cell><flux:button variant="subtle" size="sm" class="!text-blue-400 !hover:text-blue-700" wire:navigate href="{{route('member.order-detail', ['id' => '蘇摩夢油'])}}">蘇摩夢油</flux:button></flux:cell>
                                 <flux:cell>2-B04-D1-0012</flux:cell>
                                 <flux:cell>15 ml</flux:cell>
                                 <flux:cell variant="strong">NT$ 1,650</flux:cell>
@@ -94,7 +94,7 @@ class extends MemberComponent {
                                 <flux:cell variant="strong">NT$ 1,650</flux:cell>
                             </flux:row>
                             <flux:row>
-                                <flux:cell><flux:button variant="subtle" size="sm" class="text-blue-400 hover:text-blue-700" wire:navigate href="{{route('member.order-detail', ['id' => '蘇摩夢油'])}}">蘇摩夢油</flux:button></flux:cell>
+                                <flux:cell><flux:button variant="subtle" size="sm" class="!text-blue-400 !hover:text-blue-700" wire:navigate href="{{route('member.order-detail', ['id' => '蘇摩夢油'])}}">蘇摩夢油</flux:button></flux:cell>
                                 <flux:cell>2-B04-D1-0012</flux:cell>
                                 <flux:cell>15 ml</flux:cell>
                                 <flux:cell variant="strong">NT$ 1,650</flux:cell>
@@ -102,7 +102,7 @@ class extends MemberComponent {
                                 <flux:cell variant="strong">NT$ 1,650</flux:cell>
                             </flux:row>
                             <flux:row>
-                                <flux:cell><flux:button variant="subtle" size="sm" class="text-blue-400 hover:text-blue-700" wire:navigate href="{{route('member.order-detail', ['id' => '蘇摩夢油'])}}">蘇摩夢油</flux:button></flux:cell>
+                                <flux:cell><flux:button variant="subtle" size="sm" class="!text-blue-400 !hover:text-blue-700" wire:navigate href="{{route('member.order-detail', ['id' => '蘇摩夢油'])}}">蘇摩夢油</flux:button></flux:cell>
                                 <flux:cell>2-B04-D1-0012</flux:cell>
                                 <flux:cell>15 ml</flux:cell>
                                 <flux:cell variant="strong">NT$ 1,650</flux:cell>
@@ -110,7 +110,7 @@ class extends MemberComponent {
                                 <flux:cell variant="strong">NT$ 1,650</flux:cell>
                             </flux:row>
                             <flux:row>
-                                <flux:cell><flux:button variant="subtle" size="sm" class="text-blue-400 hover:text-blue-700" wire:navigate href="{{route('member.order-detail', ['id' => '蘇摩夢油'])}}">蘇摩夢油</flux:button></flux:cell>
+                                <flux:cell><flux:button variant="subtle" size="sm" class="!text-blue-400 !hover:text-blue-700" wire:navigate href="{{route('member.order-detail', ['id' => '蘇摩夢油'])}}">蘇摩夢油</flux:button></flux:cell>
                                 <flux:cell>2-B04-D1-0012</flux:cell>
                                 <flux:cell>15 ml</flux:cell>
                                 <flux:cell variant="strong">NT$ 1,650</flux:cell>
@@ -120,10 +120,8 @@ class extends MemberComponent {
                         </flux:rows>
                     </flux:table>
 
-                    <flux:separator class="border-1 [print-color-adjust:exact] bg-slate-300 dark:bg-white/10 h-px w-full my-8" />
-
-                    <div class="grid grid-cols-1 lg:grid-cols-7 gap-0 mt-6">
-                        <div class="lg:border-r pr-1 col-span-2 border-slate-300 mb-8">
+                    <div class="grid grid-cols-1 lg:grid-cols-7 gap-0 bg-white py-6 p-3 mt-6">
+                        <div class="lg:border-r pr-1 col-span-2 border-slate-300 mb-8 sm:mb-4">
                             <flux:heading>運送資訊</flux:heading>
                             <flux:subheading class="mb-1">超商取貨</flux:subheading>
                             <flux:subheading class="mb-1">簡志豪</flux:subheading>
@@ -131,45 +129,49 @@ class extends MemberComponent {
                             <flux:subheading class="mb-1">TFM10267 全家安賢店</flux:subheading>
                             <flux:subheading class="mb-1">台北市大安區四維路170巷4號</flux:subheading>
                         </div>
-                        <div class="flex flex-col space-y-4 text-sm col-span-3 lg:border-r border-slate-300 lg:px-5 mb-8">
-                            <div class="border-b pb-4 border-slate-300">
+                        <div class="flex flex-col space-y-4 text-sm col-span-3 lg:border-r border-slate-300 lg:px-5 mb-8 sm:mb-4">
+                            <div class="border-slate-300">
                                 <div class="flex justify-between">
                                     <div>商品金額合計</div>
                                     <div>NT$ 3,250</div>
                                 </div>
                             </div>
-                            <div class="border-b pb-4 border-slate-300">
+                            <flux:separator variant="subtle" />
+                            <div class="border-slate-300">
                                 <div class="flex justify-between">
                                     <div>運費</div>
                                     <div>NT$ 0</div>
                                 </div>
                             </div>
-                            <div class="border-b pb-4 border-slate-300">
+                            <flux:separator variant="subtle" />
+                            <div class="border-slate-300">
                                 <div class="flex justify-between">
                                     <div>紅利折抵</div>
                                     <div>NT$ 0</div>
                                 </div>
                             </div>
-                            <div class="border-b pb-4 border-slate-300">
+                            <flux:separator variant="subtle" />
+                            <div class="border-slate-300">
                                 <div class="flex justify-between">
                                     <div>購物金折抵</div>
                                     <div>NT$ 0</div>
                                 </div>
                             </div>
-                            <div class="pb-4 text-red-500">
+                            <flux:separator variant="subtle" />
+                            <div class="text-red-500">
                                 <div class="flex justify-between">
                                     <div>可獲得紅利點數</div>
                                     <div>3,250 點</div>
                                 </div>
                             </div>
                         </div>
-                        <div class="flex flex-col col-span-2 space-y-4 lg:pl-3 mb-8">
+                        <div class="flex flex-col col-span-2 space-y-4 lg:pl-3 mb-8 sm:mb-4">
                             <div>
                                 <flux:heading>付款方式</flux:heading>
                                 <flux:subheading class="mb-1">信用卡</flux:subheading>
                                 <flux:subheading class="mb-1">付款總金額NT$ 3,250</flux:subheading>
                                 <flux:subheading class="mb-1">付款期限2024/01/12 12:33:29 到期</flux:subheading>
-                                <flux:button icon="arrow-uturn-right" size="sm" class="bg-rose-300 hover:bg-rose-200">重新付款</flux:button>
+                                <flux:button icon="arrow-uturn-right" size="sm" class="!bg-orange-300 !hover:bg-orange-200">重新付款</flux:button>
                             </div>
                             <div>
                                 <flux:heading>發票資訊</flux:heading>
