@@ -5,7 +5,7 @@
 		<meta charset="utf-8">
         <meta name="theme-color" content="#000">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<meta name="description" content="Architronix description contents">
+		<meta name="description" content="">
 
 		<title>{{ $title ?? config('app.name') }}</title>
 
