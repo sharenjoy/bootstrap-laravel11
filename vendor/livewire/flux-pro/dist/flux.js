@@ -2028,6 +2028,7 @@ ${useLayer ? "}" : ""}
       this.exclusive = this.hasAttribute("exclusive");
       if (this.exclusive) {
         on(this, "lofi-disclosable-change", (e) => {
+          e.stopPropagation();
           if (e.target.localName === "ui-disclosure" && e.target.value) {
             this.disclosureWalker().each((el) => {
               if (el === e.target) return;
@@ -2140,7 +2141,7 @@ ${useLayer ? "}" : ""}
       return this.options().multiple ? this.state.has(value) : this.state === value;
     }
     setState(value) {
-      if (value === null) value = this.multiple ? [] : "";
+      if (value === null || value === "") value = this.options().multiple ? [] : "";
       if (this.options().multiple) {
         if (!Array.isArray(value)) value = [value];
         value = value.map((i) => i + "");
@@ -4987,7 +4988,9 @@ ${useLayer ? "}" : ""}
       observer.observe(list, { childList: true });
     }
     button() {
-      return this.querySelector("button:has(+ [popover])");
+      return Array.from(this.querySelectorAll("button")).find(
+        (button) => button.nextElementSibling?.matches("[popover]")
+      ) || null;
     }
     input() {
       return this.querySelector("input");
@@ -5028,7 +5031,7 @@ ${useLayer ? "}" : ""}
         let picker = this.closest("ui-autocomplete, ui-combobox, ui-select");
         let list = this.closest("ui-options");
         if (!list) return;
-        let isHidden = (el) => getComputedStyle(el).display === "none";
+        let isHidden = (el) => el.hasAttribute("data-hidden");
         let refresh = () => {
           let empty;
           if (CSS.supports("selector(&)")) {
@@ -6381,6 +6384,7 @@ ${useLayer ? "}" : ""}
         if (options.heading) detail.slots.heading = options.heading;
         if (options.variant) detail.dataset.variant = options.variant;
         if (options.position) detail.dataset.position = options.position;
+        if (options.duration !== void 0) detail.duration = options.duration;
         document.dispatchEvent(new CustomEvent("toast-show", { detail }));
       },
       modal(name) {
@@ -6422,19 +6426,24 @@ ${useLayer ? "}" : ""}
     });
     window.Flux = flux;
     Alpine.magic("flux", () => flux);
-    selectorDarkMode && Alpine.effect(() => {
+    Alpine.effect(() => {
       applyAppearance(flux.appearance);
     });
-    selectorDarkMode && document.addEventListener("livewire:navigated", () => {
+    document.addEventListener("livewire:navigated", () => {
       applyAppearance(flux.appearance);
     });
     let media = window.matchMedia("(prefers-color-scheme: dark)");
-    selectorDarkMode && media.addEventListener("change", () => {
+    media.addEventListener("change", () => {
       flux.systemAppearanceChanged++;
       applyAppearance(flux.appearance);
     });
   });
   function applyAppearance(appearance) {
+    if (!selectorDarkMode) {
+      document.documentElement.classList.remove("dark");
+      window.localStorage.removeItem("flux.appearance");
+      return;
+    }
     let applyDark = () => document.documentElement.classList.add("dark");
     let applyLight = () => document.documentElement.classList.remove("dark");
     if (appearance === "system") {

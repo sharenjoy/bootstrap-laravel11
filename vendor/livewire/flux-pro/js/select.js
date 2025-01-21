@@ -269,8 +269,14 @@ export class UISelect extends UIControl {
     }
 
     button() {
-        // @todo: fix this:
-        return this.querySelector('button:has(+ [popover])')
+        // We need to find the first button that has a sibling with a popover. Previously
+        // we used `this.querySelector('button:has(+ [popover])')`, but the `:has()`
+        // selector only recently got support in Firefox (end 2023). We also need
+        // to return `null` as that is what `querySelector` returns if nothing
+        // is found...
+        return Array.from(this.querySelectorAll('button')).find(
+            button => button.nextElementSibling?.matches('[popover]')
+        ) || null
     }
 
     input() {
@@ -327,7 +333,9 @@ class UIEmpty extends UIElement {
 
             if (! list) return
 
-            let isHidden = el => getComputedStyle(el).display === 'none'
+            // On Safari 18+, we can't use `getComputedStyle` to check an elements visibility, as
+            // it will return `none` if the element is inside another element that is hidden...            
+            let isHidden = el => el.hasAttribute('data-hidden')
 
             let refresh = () => {
                 let empty
