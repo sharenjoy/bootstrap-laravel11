@@ -3,7 +3,7 @@
     <flux:subheading>{{$headerDesc}}</flux:subheading>
 </div>
 
-<x-checkout.separator></x-checkout.separator>
+<x-noah.checkout.separator></x-noah.checkout.separator>
 
 <div class="space-y-3 mb-[50px]">
     <flux:radio.group label="選擇付款方式" variant="cards" class="flex-col">

@@ -13,11 +13,11 @@ class extends Component {
     <div class="flex max-md:flex-col items-start">
         <div class="w-full md:w-1/2 pb-4 mr-6">
             <flux:card class="!bg-slate-50 border-1 mb-6">
-                <x-checkout.buyer-form headerTitle="購買人資料" headerDesc="..."></x-checkout.buyer-form>
-                <x-checkout.delivery-form headerTitle="收件人資料" headerDesc="..." deliveryType="home"></x-checkout.delivery-form>
-                {{-- <x-checkout.delivery-form headerTitle="收件人資料" headerDesc="..." deliveryType="pickinstore"></x-checkout.delivery-form> --}}
-                <x-checkout.payment-method headerTitle="付款方式" headerDesc="..."></x-checkout.payment-method>
-                <x-checkout.invoice-method headerTitle="發票資訊" headerDesc="..."></x-checkout.invoice-method>
+                <x-noah.checkout.buyer-form headerTitle="購買人資料" headerDesc="..."></x-noah.checkout.buyer-form>
+                <x-noah.checkout.delivery-form headerTitle="收件人資料" headerDesc="..." deliveryType="home"></x-noah.checkout.delivery-form>
+                {{-- <x-noah.checkout.delivery-form headerTitle="收件人資料" headerDesc="..." deliveryType="pickinstore"></x-noah.checkout.delivery-form> --}}
+                <x-noah.checkout.payment-method headerTitle="付款方式" headerDesc="..."></x-noah.checkout.payment-method>
+                <x-noah.checkout.invoice-method headerTitle="發票資訊" headerDesc="..."></x-noah.checkout.invoice-method>
 
                 <flux:textarea
                     label="訂單備注"
@@ -168,11 +168,11 @@ class extends Component {
                 </flux:card>
 
                 <flux:card class="!bg-slate-50 border-1 hidden sm:block mb-6">
-                    <x-checkout.purchase-detail></x-checkout.purchase-detail>
+                    <x-noah.checkout.purchase-detail></x-noah.checkout.purchase-detail>
                 </flux:card>
 
                 <div class="hidden sm:block">
-                    <x-checkout.purchase-button />
+                    <x-noah.checkout.purchase-button />
                 </div>
 
             </div>
@@ -185,11 +185,11 @@ class extends Component {
             <flux:modal.trigger name="purchase-detail">
                 <flux:button class="w-full h-[60px] text-[16px] !bg-purple-500 !text-white" icon-trailing="chevron-up-down">合計: NT$ 3,250</flux:button>
             </flux:modal.trigger>
-            <x-checkout.purchase-button></x-checkout.purchase-button>
+            <x-noah.checkout.purchase-button></x-noah.checkout.purchase-button>
         </div>
     </div>
 
     <flux:modal name="purchase-detail" variant="flyout" position="bottom">
-        <x-checkout.purchase-detail></x-checkout.purchase-detail>
+        <x-noah.checkout.purchase-detail></x-noah.checkout.purchase-detail>
     </flux:modal>
 </div>

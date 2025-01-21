@@ -9,7 +9,7 @@ class extends MemberComponent {
 }; ?>
 
 <div>
-    <x-member-settings>
+    <x-noah.member-settings>
         <x-slot name="settingTitle">
             {{ __('Email notifications') }}
         </x-slot>
@@ -27,5 +27,5 @@ class extends MemberComponent {
             <flux:separator variant="subtle" />
             <flux:switch wire:model.live="security" label="購物提醒通知" description="針對用戶關注的商品發送促銷信息。" />
         </div>
-    </x-member-settings>
+    </x-noah.member-settings>
 </div>

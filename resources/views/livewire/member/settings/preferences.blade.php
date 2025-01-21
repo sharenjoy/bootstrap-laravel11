@@ -8,7 +8,7 @@ class extends MemberComponent {
 }; ?>
 
 <div>
-    <x-member-settings>
+    <x-noah.member-settings>
         <x-slot name="settingTitle">
             {{ __('Preferences') }}
         </x-slot>
@@ -56,5 +56,5 @@ class extends MemberComponent {
                 </div>
             </div>
         </form>
-    </x-member-settings>
+    </x-noah.member-settings>
 </div>

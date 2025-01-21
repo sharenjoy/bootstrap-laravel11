@@ -3,7 +3,7 @@
     <flux:subheading>{{$headerDesc}}</flux:subheading>
 </div>
 
-<x-checkout.separator></x-checkout.separator>
+<x-noah.checkout.separator></x-noah.checkout.separator>
 
 <div class="space-y-3 mb-[50px]" x-data="{invoiceType: false, carrierType: false}">
     <flux:field class="max-w-md">
@@ -62,7 +62,3 @@
         </flux:field>
     </div>
 </div>
-
-<script>
-
-</script>
