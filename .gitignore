@@ -4,6 +4,7 @@
 /public/storage
 /storage/*.key
 /storage/debugbar
+/vendor/_laravel_ide
 .env
 .env.backup
 .env.production
