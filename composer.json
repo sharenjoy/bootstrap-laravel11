@@ -17,8 +17,7 @@
         "spatie/laravel-translatable": "^6.7",
         "torann/currency": "^1.1",
         "torann/geoip": "^3.0",
-        "webpatser/laravel-countries": "dev-master",
-        "sharenjoy/noah-cms": "dev-main"
+        "webpatser/laravel-countries": "dev-master"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.13",
@@ -77,10 +76,10 @@
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
-    "repositories": {
-        "flux-pro": {
+    "repositories": [
+        {
             "type": "composer",
             "url": "https://composer.fluxui.dev"
         }
-    }
+    ]
 }
