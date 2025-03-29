@@ -17,7 +17,8 @@
         "spatie/laravel-translatable": "^6.7",
         "torann/currency": "^1.1",
         "torann/geoip": "^3.0",
-        "webpatser/laravel-countries": "dev-master"
+        "webpatser/laravel-countries": "dev-master",
+        "sharenjoy/noah-cms": "dev-main"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.13",
